@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s http://localhost:8000/openapi.json)",
+      "Bash(python -c \"import sys,json; spec=json.load\\(sys.stdin\\); paths=[\\(p,m\\) for p in spec['paths'] for m in spec['paths'][p] if 'user' in p.lower\\(\\)]; print\\('\\\\n'.join\\(f'{m.upper\\(\\)} {p}' for p,m in paths\\)\\)\")",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/auth/login -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":\"admin123\"}')",
+      "Bash(curl -s -X DELETE http://localhost:8000/api/v1/users/test123 -H \"Authorization: Bearer $\\(curl -s -X POST http://localhost:8000/api/v1/auth/login -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":\"admin123\"}')",
+      "Bash(curl -s -X DELETE \"http://localhost:8000/api/v1/users/%E7%A8%8B%E7%BD%97%E6%B6%A6\" -H \"Authorization: Bearer $\\(curl -s -X POST http://localhost:8000/api/v1/auth/login -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":\"admin123\"}')",
+      "Bash(npx vite *)"
+    ]
+  }
+}
