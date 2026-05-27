@@ -69,6 +69,7 @@ export const products = {
 export const purchases = {
   create: (data) => api.post('/purchases', data).then(r => r.data),
   list: (params) => api.get('/purchases', { params }).then(r => r.data),
+  update: (id, data) => api.put(`/purchases/${id}`, data).then(r => r.data),
   delete: (id) => api.delete(`/purchases/${id}`),
 }
 
@@ -123,7 +124,6 @@ export const postProcess = {
   create: (data) => api.post('/post-process', data).then(r => r.data),
   list: (params) => api.get('/post-process', { params }).then(r => r.data),
   update: (id, data) => api.put(`/post-process/${id}`, data),
-  updateSend: (id, data) => api.put(`/post-process/${id}/send`, data),
   delete: (id) => api.delete(`/post-process/${id}`),
   exportExcel: (params) => api.get('/post-process/export', { params, responseType: 'blob' }).then(r => {
     const url = window.URL.createObjectURL(new Blob([r.data]))

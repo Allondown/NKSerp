@@ -27,15 +27,15 @@
             <th rowspan="2">机器</th>
             <th rowspan="2">产品编号</th>
             <th rowspan="2">产品名称</th>
-            <th colspan="8">A班</th>
-            <th colspan="8">B班</th>
+            <th colspan="9">A班</th>
+            <th colspan="9">B班</th>
             <th rowspan="2">计划产量</th>
             <th rowspan="2">完成数量</th>
             <th rowspan="2">操作</th>
           </tr>
           <tr>
-            <th>节拍</th><th>生产时间</th><th>理论产量</th><th>实绩</th><th>良品</th><th>不良</th><th>合格率</th><th>损失备注</th>
-            <th>节拍</th><th>生产时间</th><th>理论产量</th><th>实绩</th><th>良品</th><th>不良</th><th>合格率</th><th>损失备注</th>
+            <th>节拍</th><th>生产时间</th><th>理论产量</th><th>实绩</th><th>良品</th><th>不良</th><th>合格率</th><th>损失备注</th><th>操作工</th>
+            <th>节拍</th><th>生产时间</th><th>理论产量</th><th>实绩</th><th>良品</th><th>不良</th><th>合格率</th><th>损失备注</th><th>操作工</th>
           </tr>
         </thead>
         <tbody>
@@ -58,6 +58,7 @@
                 density="compact" hide-details
                 style="min-width:100px" />
             </td>
+            <td>{{ r.a_operator }}</td>
             <td>{{ r.b_cycle_sec }}</td>
             <td>{{ r.b_work_time_sec }}</td>
             <td>{{ r.b_theoretical_qty }}</td>
@@ -72,6 +73,7 @@
                 density="compact" hide-details
                 style="min-width:100px" />
             </td>
+            <td>{{ r.b_operator }}</td>
             <td>{{ r.plan_qty }}</td>
             <td>{{ r.completion_qty }}</td>
             <td>
@@ -83,7 +85,7 @@
               </v-btn>
             </td>
           </tr>
-          <tr v-if="!displayData.length"><td colspan="23" class="text-center">暂无记录</td></tr>
+          <tr v-if="!displayData.length"><td colspan="25" class="text-center">暂无记录</td></tr>
         </tbody>
       </v-table>
     </v-card-text>
@@ -128,21 +130,21 @@
             </v-row>
             <v-row class="text-center">
               <v-col cols="1"><strong>A班</strong></v-col>
-              <v-col cols="1"><v-text-field v-model.number="form.a_cycle_sec" type="number" density="compact" hide-details /></v-col>
-              <v-col cols="1"><v-text-field v-model.number="form.a_work_time_sec" type="number" density="compact" hide-details /></v-col>
+              <v-col cols="1"><v-text-field v-model.number="form.a_cycle_sec" type="number" hide-spin-buttons density="compact" hide-details /></v-col>
+              <v-col cols="1"><v-text-field v-model.number="form.a_work_time_sec" type="number" hide-spin-buttons density="compact" hide-details /></v-col>
               <v-col cols="1"><span class="text-caption">{{ aTheoreticalQty }}</span></v-col>
-              <v-col cols="2"><v-text-field v-model.number="form.a_actual_qty" type="number" density="compact" hide-details /></v-col>
-              <v-col cols="2"><v-text-field v-model.number="form.a_good_qty" type="number" density="compact" hide-details /></v-col>
+              <v-col cols="2"><v-text-field v-model.number="form.a_actual_qty" type="number" hide-spin-buttons density="compact" hide-details /></v-col>
+              <v-col cols="2"><v-text-field v-model.number="form.a_good_qty" type="number" hide-spin-buttons density="compact" hide-details /></v-col>
               <v-col cols="2"><v-select v-model="form.a_operator" :items="aOperatorList" density="compact" hide-details /></v-col>
               <v-col cols="2"><v-text-field v-model="form.a_loss_remark" density="compact" hide-details /></v-col>
             </v-row>
             <v-row class="text-center">
               <v-col cols="1"><strong>B班</strong></v-col>
-              <v-col cols="1"><v-text-field v-model.number="form.b_cycle_sec" type="number" density="compact" hide-details /></v-col>
-              <v-col cols="1"><v-text-field v-model.number="form.b_work_time_sec" type="number" density="compact" hide-details /></v-col>
+              <v-col cols="1"><v-text-field v-model.number="form.b_cycle_sec" type="number" hide-spin-buttons density="compact" hide-details /></v-col>
+              <v-col cols="1"><v-text-field v-model.number="form.b_work_time_sec" type="number" hide-spin-buttons density="compact" hide-details /></v-col>
               <v-col cols="1"><span class="text-caption">{{ bTheoreticalQty }}</span></v-col>
-              <v-col cols="2"><v-text-field v-model.number="form.b_actual_qty" type="number" density="compact" hide-details /></v-col>
-              <v-col cols="2"><v-text-field v-model.number="form.b_good_qty" type="number" density="compact" hide-details /></v-col>
+              <v-col cols="2"><v-text-field v-model.number="form.b_actual_qty" type="number" hide-spin-buttons density="compact" hide-details /></v-col>
+              <v-col cols="2"><v-text-field v-model.number="form.b_good_qty" type="number" hide-spin-buttons density="compact" hide-details /></v-col>
               <v-col cols="2"><v-select v-model="form.b_operator" :items="bOperatorList" density="compact" hide-details /></v-col>
               <v-col cols="2"><v-text-field v-model="form.b_loss_remark" density="compact" hide-details /></v-col>
             </v-row>
@@ -183,11 +185,11 @@ import { production, machines, materials, users, products } from '../../api'
 const initForm = () => ({
   production_date: new Date().toISOString().slice(0, 10),
   machine: '', product_name: '', product_code: '', material_spec: '',
-  cycle_sec: 0, work_time_sec: 0, plan_qty: 0, loss_time_min: 0,
-  a_cycle_sec: 0, a_work_time_sec: 0,
-  b_cycle_sec: 0, b_work_time_sec: 0,
-  a_actual_qty: 0, a_good_qty: 0, a_operator: '', a_loss_remark: '',
-  b_actual_qty: 0, b_good_qty: 0, b_operator: '', b_loss_remark: '',
+  cycle_sec: null, work_time_sec: null, plan_qty: null, loss_time_min: null,
+  a_cycle_sec: null, a_work_time_sec: null,
+  b_cycle_sec: null, b_work_time_sec: null,
+  a_actual_qty: null, a_good_qty: null, a_operator: '', a_loss_remark: '',
+  b_actual_qty: null, b_good_qty: null, b_operator: '', b_loss_remark: '',
 })
 
 const form = ref(initForm())
@@ -195,8 +197,8 @@ const machineList = ref([])
 const materialList = ref([])
 const allOperators = ref([])
 const summaryData = ref([])
-const filterStartDate = ref('')
-const filterEndDate = ref('')
+const filterStartDate = ref(toLocalDate(new Date()))
+const filterEndDate = ref(toLocalDate(new Date()))
 const filterMachine = ref('')
 const loading = ref(false)
 const dialog = ref(false)
@@ -268,11 +270,10 @@ async function onProductCodeBlur() {
       form.value.material_spec = prod.material_spec || ''
       form.value.cycle_sec = prod.cycle_sec || 0
       form.value.work_time_sec = prod.work_time_sec || 0
-      // 默认 A/B 班使用相同节拍，生产时间各半
       if (!form.value.a_cycle_sec) form.value.a_cycle_sec = prod.cycle_sec || 0
       if (!form.value.b_cycle_sec) form.value.b_cycle_sec = prod.cycle_sec || 0
-      if (!form.value.a_work_time_sec) form.value.a_work_time_sec = Math.round((prod.work_time_sec || 0) / 2)
-      if (!form.value.b_work_time_sec) form.value.b_work_time_sec = Math.round((prod.work_time_sec || 0) / 2)
+      if (!form.value.a_work_time_sec) form.value.a_work_time_sec = prod.work_time_sec || null
+      if (!form.value.b_work_time_sec) form.value.b_work_time_sec = prod.work_time_sec || null
       if (!form.value.plan_qty || form.value.plan_qty === 0) form.value.plan_qty = prod.monthly_plan || 0
       if (prod.loss_remark) {
         form.value.a_loss_remark = prod.loss_remark
@@ -421,6 +422,12 @@ async function updateLossRemark(r, shift, val) {
       console.error('更新损失备注失败', e.response?.data || e.message)
     }
   }, 500)
+}
+
+function toLocalDate(d) {
+  if (!d) return ''
+  const dt = new Date(d)
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
 }
 
 function formatDate(d) {

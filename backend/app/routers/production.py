@@ -184,54 +184,68 @@ async def export_daily(start_date: str | None = None,
             },
             "cycle_sec": {"$first": "$cycle_sec"},
             "plan_qty": {"$first": "$plan_qty"},
-            "loss_time_min": {"$first": "$loss_time_min"},
             "a_work_time": {"$sum": {"$cond": [{"$eq": ["$shift", "A班"]}, "$work_time_sec", 0]}},
             "b_work_time": {"$sum": {"$cond": [{"$eq": ["$shift", "B班"]}, "$work_time_sec", 0]}},
             "a_actual": {"$sum": {"$cond": [{"$eq": ["$shift", "A班"]}, "$actual_qty", 0]}},
             "b_actual": {"$sum": {"$cond": [{"$eq": ["$shift", "B班"]}, "$actual_qty", 0]}},
             "a_good": {"$sum": {"$cond": [{"$eq": ["$shift", "A班"]}, "$good_qty", 0]}},
             "b_good": {"$sum": {"$cond": [{"$eq": ["$shift", "B班"]}, "$good_qty", 0]}},
+            "a_loss_remark": {"$max": {"$cond": [{"$eq": ["$shift", "A班"]}, "$loss_remark", ""]}},
+            "b_loss_remark": {"$max": {"$cond": [{"$eq": ["$shift", "B班"]}, "$loss_remark", ""]}},
+            "a_operator": {"$max": {"$cond": [{"$eq": ["$shift", "A班"]}, "$operator", ""]}},
+            "b_operator": {"$max": {"$cond": [{"$eq": ["$shift", "B班"]}, "$operator", ""]}},
         }},
-        {"$sort": {"_id.date": -1, "_id.machine": 1}}
+        {"$sort": {"_id.date": 1, "_id.machine": 1}}
     ]
     rows = await db.daily_production.aggregate(pipeline).to_list(length=10000)
 
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "日报汇总"
-    headers = ["日期", "机器", "产品编号", "产品名称", "节拍(秒/件)", "生产时间(秒)",
-                "理论产量", "A班实绩", "A班良品", "A班不良", "A班合格率",
-                "B班实绩", "B班良品", "B班不良", "B班合格率",
-                "计划产量", "完成数量", "损失时间备注"]
+    headers = ["日期", "机器", "产品编号", "产品名称",
+                "A节拍", "A生产时间", "A理论产量", "A实绩", "A良品", "A不良", "A合格率", "A损失备注", "A操作工",
+                "B节拍", "B生产时间", "B理论产量", "B实绩", "B良品", "B不良", "B合格率", "B损失备注", "B操作工",
+                "计划产量", "完成数量"]
     ws.append(headers)
 
+    running_total = 0
     for r in rows:
         g = r["_id"]
         a_actual = r["a_actual"] or 0
         b_actual = r["b_actual"] or 0
         a_good = r["a_good"] or 0
         b_good = r["b_good"] or 0
-        work_total = (r["a_work_time"] or 0) + (r["b_work_time"] or 0)
+        a_work = r["a_work_time"] or 0
+        b_work = r["b_work_time"] or 0
         cycle = r["cycle_sec"] or 1
+        a_theo = round(a_work / cycle, 2) if cycle > 0 else 0
+        b_theo = round(b_work / cycle, 2) if cycle > 0 else 0
+        running_total += a_good + b_good
         ws.append([
             g["date"].strftime("%Y-%m-%d") if g["date"] else "",
             g["machine"],
             g["product_code"],
             g["product_name"],
             cycle,
-            work_total,
-            round(work_total / cycle, 2) if cycle > 0 else 0,
+            a_work,
+            a_theo,
             a_actual,
             a_good,
             max(a_actual - a_good, 0),
             f"{round(a_good / a_actual * 100, 1)}%" if a_actual > 0 else "0%",
+            r.get("a_loss_remark", ""),
+            r.get("a_operator", ""),
+            cycle,
+            b_work,
+            b_theo,
             b_actual,
             b_good,
             max(b_actual - b_good, 0),
             f"{round(b_good / b_actual * 100, 1)}%" if b_actual > 0 else "0%",
+            r.get("b_loss_remark", ""),
+            r.get("b_operator", ""),
             r["plan_qty"] or 0,
-            a_good + b_good,
-            r.get("loss_time_min", 0),
+            running_total,
         ])
 
     for col in range(1, len(headers) + 1):
@@ -425,6 +439,8 @@ async def daily_summary(start_date: str | None = None,
             "b_loss_time_min": {"$max": {"$cond": [{"$eq": ["$shift", "B班"]}, "$loss_time_min", 0]}},
             "a_loss_remark": {"$max": {"$cond": [{"$eq": ["$shift", "A班"]}, "$loss_remark", ""]}},
             "b_loss_remark": {"$max": {"$cond": [{"$eq": ["$shift", "B班"]}, "$loss_remark", ""]}},
+            "a_operator": {"$max": {"$cond": [{"$eq": ["$shift", "A班"]}, "$operator", ""]}},
+            "b_operator": {"$max": {"$cond": [{"$eq": ["$shift", "B班"]}, "$operator", ""]}},
         }},
         {"$sort": {"_id.date": -1, "_id.machine": 1}}
     ]
@@ -469,6 +485,8 @@ async def daily_summary(start_date: str | None = None,
             "b_loss_time_min": r.get("b_loss_time_min", 0),
             "a_loss_remark": r.get("a_loss_remark", ""),
             "b_loss_remark": r.get("b_loss_remark", ""),
+            "a_operator": r.get("a_operator", ""),
+            "b_operator": r.get("b_operator", ""),
             "completion_qty": a_good + b_good,
         })
     return result

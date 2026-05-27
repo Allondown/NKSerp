@@ -45,11 +45,31 @@ async def report_cost(year: int, month: int,
     p_map = {p["_id"]: p for p in purchases}
     i_map = {i["_id"]: i for i in issues}
 
-    # 所有有活动的材料 + 有库存的材料
+    # 期初：当月之前所有采购和领用的累计
+    prev_purchase_pipeline = [
+        {"$match": {"arrival_date": {"$lt": start_date}}},
+        {"$group": {
+            "_id": "$material_spec",
+            "prev_purchase_qty": {"$sum": "$weight_kg"},
+            "prev_purchase_amount": {"$sum": "$total_price"}
+        }}
+    ]
+    prev_purchases = await db.purchase_records.aggregate(prev_purchase_pipeline).to_list(length=500)
+    prev_p_map = {p["_id"]: p for p in prev_purchases}
+
+    prev_issue_pipeline = [
+        {"$match": {"issue_date": {"$lt": start_date}}},
+        {"$group": {
+            "_id": "$material_spec",
+            "prev_issue_qty": {"$sum": "$issue_weight_kg"},
+            "prev_issue_cost": {"$sum": "$total_cost"}
+        }}
+    ]
+    prev_issues = await db.issue_records.aggregate(prev_issue_pipeline).to_list(length=500)
+    prev_i_map = {i["_id"]: i for i in prev_issues}
+
+    # 仅显示当月有采购或领用记录的材料
     specs = set(list(p_map.keys()) + list(i_map.keys()))
-    inventory_items = await db.inventory_snapshot.find().to_list(length=500)
-    for inv in inventory_items:
-        specs.add(inv["material_spec"])
 
     details = []
     total_purchase_amount = 0
@@ -59,16 +79,23 @@ async def report_cost(year: int, month: int,
     for spec in sorted(specs):
         p = p_map.get(spec, {})
         i = i_map.get(spec, {})
-        inv = next((x for x in inventory_items if x["material_spec"] == spec), None)
+        prev_p = prev_p_map.get(spec, {})
+        prev_i = prev_i_map.get(spec, {})
 
         purchase_qty = p.get("purchase_qty", 0) or 0
         purchase_amount = p.get("purchase_amount", 0) or 0
         issue_qty = i.get("issue_qty", 0) or 0
         issue_cost = i.get("issue_cost", 0) or 0
-        end_qty = inv["total_qty_kg"] if inv else 0
-        end_amount = inv["total_amount"] if inv else 0
-        begin_qty = end_qty + issue_qty - purchase_qty
-        begin_amount = end_amount + issue_cost - purchase_amount
+
+        prev_purchase_qty = prev_p.get("prev_purchase_qty", 0) or 0
+        prev_purchase_amount = prev_p.get("prev_purchase_amount", 0) or 0
+        prev_issue_qty = prev_i.get("prev_issue_qty", 0) or 0
+        prev_issue_cost = prev_i.get("prev_issue_cost", 0) or 0
+
+        begin_qty = prev_purchase_qty - prev_issue_qty
+        begin_amount = prev_purchase_amount - prev_issue_cost
+        end_qty = begin_qty + purchase_qty - issue_qty
+        end_amount = begin_amount + purchase_amount - issue_cost
 
         total_purchase_amount += purchase_amount
         total_issue_cost += issue_cost
@@ -126,11 +153,11 @@ async def report_product_achieve(year: int, month: int,
         result.append({
             "product": g["product"],
             "machine": g["machine"],
-            "theoretical_qty": round(theo * 2, 2),  # AB两班分别理论产量合计
+            "theoretical_qty": round(theo, 2),
             "actual_qty": actual,
             "good_qty": good,
             "bad_qty": max(actual - good, 0),
-            "achieve_rate": round(actual / (theo * 2), 4) if theo > 0 else 0,
+            "achieve_rate": round(actual / theo, 4) if theo > 0 else 0,
             "qualified_rate": round(r.get("avg_qualified_rate", 0), 4),
         })
     return result
@@ -165,10 +192,10 @@ async def report_team_achieve(year: int, month: int,
         good = r["good_qty"] or 0
         result.append({
             "shift": r["_id"],
-            "theoretical_qty": round(theo * 2, 2),
+            "theoretical_qty": round(theo, 2),
             "actual_qty": actual,
             "good_qty": good,
-            "achieve_rate": round(actual / (theo * 2), 4) if theo > 0 else 0,
+            "achieve_rate": round(actual / theo, 4) if theo > 0 else 0,
             "qualified_rate": round(r.get("avg_qualified_rate", 0), 4),
         })
     return result
@@ -207,10 +234,10 @@ async def report_employee(year: int, month: int,
         result.append({
             "operator": g["operator"],
             "product": g["product"],
-            "theoretical_qty": round(theo * 2, 2),
+            "theoretical_qty": round(theo, 2),
             "actual_qty": actual,
             "good_qty": good,
-            "achieve_rate": round(actual / (theo * 2), 4) if theo > 0 else 0,
+            "achieve_rate": round(actual / theo, 4) if theo > 0 else 0,
             "qualified_rate": round(r.get("avg_qualified_rate", 0), 4),
         })
     return result
@@ -234,10 +261,19 @@ async def report_progress(year: int, month: int,
 
     pipeline = [
         {"$match": match_filter},
+        {"$addFields": {
+            "total_send_qty": {
+                "$reduce": {
+                    "input": {"$ifNull": ["$sends", []]},
+                    "initialValue": 0,
+                    "in": {"$add": ["$$value", {"$ifNull": ["$$this.send_qty", 0]}]}
+                }
+            }
+        }},
         {"$group": {
             "_id": {"product_code": "$product_code", "product_name": "$product_name"},
-            "a_send": {"$sum": {"$cond": [{"$eq": ["$shift", "A班"]}, "$send_qty", 0]}},
-            "b_send": {"$sum": {"$cond": [{"$eq": ["$shift", "B班"]}, "$send_qty", 0]}},
+            "a_send": {"$sum": {"$cond": [{"$eq": ["$shift", "A班"]}, "$total_send_qty", 0]}},
+            "b_send": {"$sum": {"$cond": [{"$eq": ["$shift", "B班"]}, "$total_send_qty", 0]}},
             "total_received": {"$sum": "$received_qty"},
         }},
         {"$sort": {"_id.product_code": 1}}

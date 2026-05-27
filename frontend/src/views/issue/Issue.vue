@@ -2,6 +2,15 @@
   <v-card title="领用记录">
     <v-card-text>
       <v-row>
+        <v-col cols="2">
+          <v-select v-model="filterYear" :items="yearOptions" label="年份" density="compact" />
+        </v-col>
+        <v-col cols="2">
+          <v-select v-model="filterMonth" :items="monthOptions" label="月份" density="compact" />
+        </v-col>
+        <v-col cols="2">
+          <v-btn variant="outlined" size="small" @click="loadRecords">查询</v-btn>
+        </v-col>
         <v-col cols="6" class="text-right">
           <v-btn color="warning" prepend-icon="mdi-plus" @click="dialog = true">新增领用</v-btn>
         </v-col>
@@ -84,6 +93,11 @@ const records = ref([])
 const currentAvgPrice = ref(0)
 const loading = ref(false)
 const dialog = ref(false)
+const now = new Date()
+const filterYear = ref(now.getFullYear())
+const filterMonth = ref(now.getMonth() + 1)
+const yearOptions = [2025, 2026, 2027]
+const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1)
 
 const autoCost = computed(() =>
   (parseFloat(form.value.issue_weight_kg || 0) * currentAvgPrice.value).toFixed(2)
@@ -136,7 +150,11 @@ function formatDate(d) {
 }
 
 async function loadRecords() {
-  const res = await issues.list({ page: 1, page_size: 100 })
+  const year = filterYear.value
+  const month = filterMonth.value
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`
+  const endDate = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`
+  const res = await issues.list({ page: 1, page_size: 100, start_date: startDate, end_date: endDate })
   records.value = res.items
 }
 

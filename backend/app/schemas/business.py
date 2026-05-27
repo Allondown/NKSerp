@@ -3,10 +3,9 @@ from datetime import date, datetime
 from pydantic import BaseModel
 
 
-class PostProcessSendUpdate(BaseModel):
-    """后工序内联更新送出日期/数量。"""
+class SendEntry(BaseModel):
+    send_date: date | None = None
     send_qty: int = 0
-    send_date: str | None = None
 
 
 class PostProcessCreate(BaseModel):
@@ -16,8 +15,7 @@ class PostProcessCreate(BaseModel):
     received_qty: int  # 送入数量
     shift: str
     operator: str
-    send_date: date | None = None  # 后工序完成送出日期
-    send_qty: int = 0  # 送出数量
+    sends: list[SendEntry] = []  # 后工序完成送出记录（多次）
     remark: str = ""
 
 

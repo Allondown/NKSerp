@@ -67,3 +67,30 @@ async def delete_purchase(record_id: str,
     )
     await db.purchase_records.delete_one({"_id": ObjectId(record_id)})
     return {"message": "ok"}
+
+
+@router.put("/{record_id}")
+async def update_purchase(record_id: str, data: PurchaseCreate,
+                          current=Depends(require_role("admin", "warehouse"))):
+    """编辑采购记录：回滚旧库存影响后应用新数据。"""
+    db = get_db()
+    old = await db.purchase_records.find_one({"_id": ObjectId(record_id)})
+    if not old:
+        raise HTTPException(status_code=404, detail="未找到该记录")
+
+    await reverse_inventory_after_purchase(
+        old["material_spec"], old["weight_kg"], old["total_price"]
+    )
+
+    total_price = round(data.weight_kg * data.unit_price, 2)
+    await db.purchase_records.update_one(
+        {"_id": ObjectId(record_id)},
+        {"$set": {
+            **data.model_dump(),
+            "arrival_date": datetime.combine(data.arrival_date, datetime.min.time()),
+            "total_price": total_price,
+        }}
+    )
+
+    await update_inventory_after_purchase(data.material_spec, data.weight_kg, total_price)
+    return {"message": "ok"}
