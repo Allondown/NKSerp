@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api/v1/materials", tags=["材料规格"])
 
 
 @router.get("", response_model=list[MaterialResponse])
-async def list_materials(current=Depends(require_role("admin", "warehouse", "workshop", "viewer"))):
+async def list_materials(current=Depends(require_role("admin", "viewer"))):
     db = get_db()
     cursor = db.materials.find().sort("material_spec", 1)
     return await cursor.to_list(length=500)
@@ -17,7 +17,7 @@ async def list_materials(current=Depends(require_role("admin", "warehouse", "wor
 
 @router.post("")
 async def create_material(data: MaterialCreate,
-                          current=Depends(require_role("admin", "warehouse"))):
+                          current=Depends(require_role("admin"))):
     db = get_db()
     exists = await db.materials.find_one({"material_spec": data.material_spec})
     if exists:
@@ -28,7 +28,7 @@ async def create_material(data: MaterialCreate,
 
 @router.put("/{material_spec}")
 async def update_material(material_spec: str, data: MaterialCreate,
-                          current=Depends(require_role("admin", "warehouse"))):
+                          current=Depends(require_role("admin"))):
     db = get_db()
     result = await db.materials.update_one(
         {"material_spec": material_spec},

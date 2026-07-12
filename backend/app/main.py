@@ -6,8 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import CORS_ORIGINS
 from app.database import close_db, connect_db
 from app.routers import (auth, inventory, issues, machines, materials,
-                         post_process, products, production, purchases,
-                         reports, users)
+                         operators, post_process, products, production,
+                         purchases, reports, tool_purchase, users,
+                         warehouse_entry)
 
 
 @asynccontextmanager
@@ -43,6 +44,9 @@ app.include_router(inventory.router)
 app.include_router(production.router)
 app.include_router(post_process.router)
 app.include_router(reports.router)
+app.include_router(operators.router)
+app.include_router(tool_purchase.router)
+app.include_router(warehouse_entry.router)
 
 
 @app.get("/api/health")

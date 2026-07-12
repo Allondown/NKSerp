@@ -135,6 +135,38 @@ export const postProcess = {
   }),
 }
 
+// Tool Purchases
+export const toolPurchases = {
+  create: (data) => api.post('/tool-purchases', data).then(r => r.data),
+  list: (params) => api.get('/tool-purchases', { params }).then(r => r.data),
+  update: (id, data) => api.put(`/tool-purchases/${id}`, data),
+  delete: (id) => api.delete(`/tool-purchases/${id}`),
+}
+
+// Warehouse Entry
+export const warehouseEntry = {
+  create: (data) => api.post('/warehouse-entry', data).then(r => r.data),
+  list: (params) => api.get('/warehouse-entry', { params }).then(r => r.data),
+  update: (id, data) => api.put(`/warehouse-entry/${id}`, data),
+  delete: (id) => api.delete(`/warehouse-entry/${id}`),
+  exportExcel: (params) => api.get('/warehouse-entry/export', { params, responseType: 'blob' }).then(r => {
+    const url = window.URL.createObjectURL(new Blob([r.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `后工序入仓报表_${params.year || ''}${params.month ? String(params.month).padStart(2, '0') : ''}.xlsx`
+    link.click()
+    URL.revokeObjectURL(url)
+  }),
+}
+
+// Operators
+export const operators = {
+  list: () => api.get('/operators').then(r => r.data),
+  create: (data) => api.post('/operators', data),
+  update: (id, data) => api.put(`/operators/${id}`, data),
+  delete: (id) => api.delete(`/operators/${id}`),
+}
+
 // Reports
 export const reports = {
   cost: (year, month) => api.get('/reports/cost', { params: { year, month } }).then(r => r.data),
@@ -142,6 +174,7 @@ export const reports = {
   teamAchieve: (year, month) => api.get('/reports/team-achieve', { params: { year, month } }).then(r => r.data),
   employee: (year, month) => api.get('/reports/employee', { params: { year, month } }).then(r => r.data),
   progress: (year, month, productCode) => api.get('/reports/progress', { params: { year, month, product_code: productCode || undefined } }).then(r => r.data),
+  postProcessSummary: (year) => api.get('/reports/post-process-summary', { params: { year } }).then(r => r.data),
   export: (reportType, year, month, productCode) => api.get('/reports/export/excel', {
     params: { report_type: reportType, year, month, product_code: productCode || undefined },
     responseType: 'blob'

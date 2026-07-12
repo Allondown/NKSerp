@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/v1/products", tags=["产品主数据"])
 @router.get("", response_model=list[ProductResponse])
 async def list_products(month: str | None = None,
                         product_code: str | None = None,
-                        current=Depends(require_role("admin", "warehouse", "workshop", "viewer"))):
+                        current=Depends(require_role("admin", "viewer"))):
     db = get_db()
     q = {}
     if month:
@@ -23,7 +23,7 @@ async def list_products(month: str | None = None,
 
 @router.get("/{product_code}")
 async def get_product(product_code: str,
-                      current=Depends(require_role("admin", "warehouse", "workshop", "viewer"))):
+                      current=Depends(require_role("admin", "viewer"))):
     """按产品编号查询最近一条主数据，用于日报自动带出。"""
     db = get_db()
     record = await db.product_master.find_one(
@@ -44,7 +44,7 @@ async def get_product(product_code: str,
 
 @router.post("")
 async def create_product(data: ProductCreate,
-                         current=Depends(require_role("admin", "warehouse"))):
+                         current=Depends(require_role("admin"))):
     db = get_db()
     await db.product_master.update_one(
         {"product_code": data.product_code, "month": data.month},
@@ -57,7 +57,7 @@ async def create_product(data: ProductCreate,
 @router.put("")
 async def update_product(data: ProductCreate,
                          original_code: str, original_month: str,
-                         current=Depends(require_role("admin", "warehouse"))):
+                         current=Depends(require_role("admin"))):
     """编辑产品主数据。"""
     db = get_db()
     result = await db.product_master.update_one(

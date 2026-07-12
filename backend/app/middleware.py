@@ -13,8 +13,6 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 ROLE_PERMISSIONS = {
     "admin": ["read", "write", "manage"],
-    "warehouse": ["read", "write"],
-    "workshop": ["read", "write"],
     "viewer": ["read"],
 }
 

@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/v1/production", tags=["生产日报"])
 
 @router.post("/daily")
 async def create_daily(data: DailyProductionCreate,
-                       current=Depends(require_role("admin", "workshop"))):
+                       current=Depends(require_role("admin"))):
     db = get_db()
     theoretical_qty = data.work_time_sec / data.cycle_sec if data.cycle_sec > 0 else 0
     bad_qty = data.actual_qty - data.good_qty
@@ -34,7 +34,7 @@ async def create_daily(data: DailyProductionCreate,
 
 @router.post("/daily/combined")
 async def create_daily_combined(data: DailyCombinedCreate,
-                                current=Depends(require_role("admin", "workshop"))):
+                                current=Depends(require_role("admin"))):
     """AB班合并录入，自动拆分为两条记录。"""
     db = get_db()
     total = data.a_actual_qty + data.b_actual_qty
@@ -92,7 +92,7 @@ async def update_daily_combined(
     original_machine: str,
     original_product_code: str,
     data: DailyCombinedCreate,
-    current=Depends(require_role("admin", "workshop"))):
+    current=Depends(require_role("admin"))):
     """编辑合并日报：删除原记录并重新插入。"""
     db = get_db()
     orig_dt = datetime.strptime(original_date, "%Y-%m-%d")
@@ -156,7 +156,7 @@ async def update_daily_combined(
 async def export_daily(start_date: str | None = None,
                         end_date: str | None = None,
                         machine: str | None = None,
-                        current=Depends(require_role("admin", "workshop", "warehouse", "viewer"))):
+                        current=Depends(require_role("admin", "viewer"))):
     """导出日报汇总为 Excel。"""
     from io import BytesIO
     import openpyxl
@@ -266,7 +266,7 @@ async def export_daily_list(start_date: str | None = None,
                              end_date: str | None = None,
                              machine: str | None = None,
                              product_code: str | None = None,
-                             current=Depends(require_role("admin", "workshop", "warehouse", "viewer"))):
+                             current=Depends(require_role("admin", "viewer"))):
     """导出日报明细记录为 Excel（每次登记为唯一记录）。"""
     from io import BytesIO
     import openpyxl
@@ -333,7 +333,7 @@ async def export_daily_list(start_date: str | None = None,
 
 @router.get("/daily/last/{product_code}")
 async def last_daily(product_code: str,
-                     current=Depends(require_role("admin", "workshop", "warehouse", "viewer"))):
+                     current=Depends(require_role("admin", "viewer"))):
     """查询指定产品最近一次日报记录，用于自动带出（含损失备注）。"""
     db = get_db()
     # 找最近有记录的两个日期，分别取 A/B 班数据
@@ -374,7 +374,7 @@ async def list_daily(production_date: str | None = None,
                      start_date: str | None = None,
                      end_date: str | None = None,
                      page: int = 1, page_size: int = 50,
-                     current=Depends(require_role("admin", "workshop", "warehouse", "viewer"))):
+                     current=Depends(require_role("admin", "viewer"))):
     db = get_db()
     q = {}
     if production_date:
@@ -404,7 +404,7 @@ async def list_daily(production_date: str | None = None,
 async def daily_summary(start_date: str | None = None,
                         end_date: str | None = None,
                         machine: str | None = None,
-                        current=Depends(require_role("admin", "workshop", "warehouse", "viewer"))):
+                        current=Depends(require_role("admin", "viewer"))):
     """日报汇总：按日期+机器+产品分组，AB班数据并排展示。"""
     db = get_db()
     match = {}
@@ -494,7 +494,7 @@ async def daily_summary(start_date: str | None = None,
 
 @router.put("/daily/update-loss-remark")
 async def update_loss_remark(data: LossRemarkUpdate,
-                             current=Depends(require_role("admin", "workshop"))):
+                             current=Depends(require_role("admin"))):
     """更新指定班组记录的损失备注（内联编辑）。"""
     db = get_db()
     dt = datetime.strptime(data.production_date, "%Y-%m-%d")
@@ -514,7 +514,7 @@ async def update_loss_remark(data: LossRemarkUpdate,
 
 @router.put("/daily/{record_id}")
 async def update_daily(record_id: str, data: DailyProductionCreate,
-                       current=Depends(require_role("admin", "workshop"))):
+                       current=Depends(require_role("admin"))):
     db = get_db()
     theoretical_qty = data.work_time_sec / data.cycle_sec if data.cycle_sec > 0 else 0
     bad_qty = data.actual_qty - data.good_qty

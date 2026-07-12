@@ -60,7 +60,7 @@
           <v-text-field v-model="form.product_name" label="产品名称" density="compact" />
           <v-text-field v-model="form.received_qty" label="送入数量" type="number" density="compact" />
           <v-select v-model="form.shift" :items="['A班', 'B班']" label="班组" density="compact" />
-          <v-select v-model="form.operator" :items="operatorList" label="操作员" :disabled="!form.shift" density="compact" />
+          <v-select v-model="form.operator" :items="filteredOperators" label="操作员" :disabled="!form.shift" density="compact" />
 
           <v-divider class="my-2" />
           <div class="text-subtitle-2 mb-2">送出记录</div>
@@ -106,7 +106,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { postProcess, users, products } from '../api'
+import { postProcess, operators, products } from '../api'
 const confirmDialog = ref(false)
 const pendingDelete = ref(null)
 
@@ -120,7 +120,7 @@ const initForm = () => ({
 
 const form = ref(initForm())
 const records = ref([])
-const allOperators = ref([])
+const operatorList = ref([])
 const loading = ref(false)
 const dialog = ref(false)
 const editingId = ref(null)
@@ -128,9 +128,9 @@ const filterStartDate = ref(toLocalDate(new Date()))
 const filterEndDate = ref(toLocalDate(new Date()))
 const filterProductCode = ref('')
 
-const operatorList = computed(() => {
-  if (!form.value.shift) return allOperators.value.map(u => u.real_name)
-  return allOperators.value.filter(u => u.shift === form.value.shift).map(u => u.real_name)
+const filteredOperators = computed(() => {
+  if (!form.value.shift) return operatorList.value.map(o => o.name)
+  return operatorList.value.filter(o => o.shift === form.value.shift).map(o => o.name)
 })
 
 function sendQtyRules(idx) {
@@ -260,6 +260,6 @@ function exportExcel() {
 }
 
 onMounted(async () => {
-  allOperators.value = await users.list()
+  operatorList.value = await operators.list()
 })
 </script>

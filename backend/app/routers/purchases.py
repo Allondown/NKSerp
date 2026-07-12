@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/v1/purchases", tags=["采购入库"])
 
 @router.post("")
 async def create_purchase(data: PurchaseCreate,
-                          current=Depends(require_role("admin", "warehouse"))):
+                          current=Depends(require_role("admin"))):
     db = get_db()
     total_price = round(data.weight_kg * data.unit_price, 2)
     record = {
@@ -36,7 +36,7 @@ async def list_purchases(material_spec: str | None = None,
                          start_date: str | None = None,
                          end_date: str | None = None,
                          page: int = 1, page_size: int = 50,
-                         current=Depends(require_role("admin", "warehouse", "workshop", "viewer"))):
+                         current=Depends(require_role("admin", "viewer"))):
     db = get_db()
     q = {}
     if material_spec:
@@ -71,7 +71,7 @@ async def delete_purchase(record_id: str,
 
 @router.put("/{record_id}")
 async def update_purchase(record_id: str, data: PurchaseCreate,
-                          current=Depends(require_role("admin", "warehouse"))):
+                          current=Depends(require_role("admin"))):
     """编辑采购记录：回滚旧库存影响后应用新数据。"""
     db = get_db()
     old = await db.purchase_records.find_one({"_id": ObjectId(record_id)})

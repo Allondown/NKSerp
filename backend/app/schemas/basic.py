@@ -34,6 +34,15 @@ class UserResponse(BaseModel):
     role: str
 
 
+class OperatorCreate(BaseModel):
+    name: str
+    shift: str
+
+
+class OperatorResponse(OperatorCreate):
+    pass
+
+
 class ProductCreate(BaseModel):
     product_code: str
     product_name: str

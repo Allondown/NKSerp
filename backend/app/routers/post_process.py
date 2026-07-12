@@ -26,7 +26,7 @@ def _convert_sends(sends: list) -> list:
 
 @router.post("")
 async def create_record(data: PostProcessCreate,
-                        current=Depends(require_role("admin", "workshop"))):
+                        current=Depends(require_role("admin"))):
     db = get_db()
     record = {
         **data.model_dump(exclude={"sends"}),
@@ -43,7 +43,7 @@ async def list_records(start_date: str | None = None,
                        end_date: str | None = None,
                        product_code: str | None = None,
                        page: int = 1, page_size: int = 100,
-                       current=Depends(require_role("admin", "workshop", "warehouse", "viewer"))):
+                       current=Depends(require_role("admin", "viewer"))):
     db = get_db()
     q = {}
     if start_date or end_date:
@@ -67,7 +67,7 @@ async def list_records(start_date: str | None = None,
 
 @router.put("/{record_id}")
 async def update_record(record_id: str, data: PostProcessCreate,
-                        current=Depends(require_role("admin", "workshop"))):
+                        current=Depends(require_role("admin"))):
     db = get_db()
     update_data = {
         **data.model_dump(exclude={"sends"}),
@@ -88,7 +88,7 @@ async def update_record(record_id: str, data: PostProcessCreate,
 async def export_records(start_date: str | None = None,
                           end_date: str | None = None,
                           product_code: str | None = None,
-                          current=Depends(require_role("admin", "workshop", "warehouse", "viewer"))):
+                          current=Depends(require_role("admin", "viewer"))):
     """导出后工序登记记录为 Excel。"""
     from io import BytesIO
     import openpyxl

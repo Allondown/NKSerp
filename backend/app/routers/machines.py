@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api/v1/machines", tags=["机器管理"])
 
 
 @router.get("", response_model=list[MachineResponse])
-async def list_machines(current=Depends(require_role("admin", "warehouse", "workshop", "viewer"))):
+async def list_machines(current=Depends(require_role("admin", "viewer"))):
     db = get_db()
     cursor = db.machines.find().sort("machine_name", 1)
     return await cursor.to_list(length=100)
@@ -17,7 +17,7 @@ async def list_machines(current=Depends(require_role("admin", "warehouse", "work
 
 @router.post("")
 async def create_machine(data: MachineCreate,
-                         current=Depends(require_role("admin", "warehouse"))):
+                         current=Depends(require_role("admin"))):
     db = get_db()
     exists = await db.machines.find_one({"machine_name": data.machine_name})
     if exists:

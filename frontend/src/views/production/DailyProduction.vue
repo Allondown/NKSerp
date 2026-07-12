@@ -181,7 +181,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { production, machines, materials, users, products } from '../../api'
+import { production, machines, materials, operators, products } from '../../api'
 const initForm = () => ({
   production_date: new Date().toISOString().slice(0, 10),
   machine: '', product_name: '', product_code: '', material_spec: '',
@@ -195,7 +195,7 @@ const initForm = () => ({
 const form = ref(initForm())
 const machineList = ref([])
 const materialList = ref([])
-const allOperators = ref([])
+const operatorList = ref([])
 const summaryData = ref([])
 const filterStartDate = ref(toLocalDate(new Date()))
 const filterEndDate = ref(toLocalDate(new Date()))
@@ -208,11 +208,11 @@ const confirmMessage = ref('')
 const pendingDelete = ref(null)
 
 const aOperatorList = computed(() =>
-  allOperators.value.filter(u => u.shift === 'A班').map(u => u.real_name)
+  operatorList.value.filter(o => o.shift === 'A班').map(o => o.name)
 )
 
 const bOperatorList = computed(() =>
-  allOperators.value.filter(u => u.shift === 'B班').map(u => u.real_name)
+  operatorList.value.filter(o => o.shift === 'B班').map(o => o.name)
 )
 
 const aTheoreticalQty = computed(() => {
@@ -459,6 +459,6 @@ function exportExcel() {
 onMounted(async () => {
   machineList.value = (await machines.list()).map(m => m.machine_name)
   materialList.value = (await materials.list()).map(m => m.material_spec)
-  allOperators.value = await users.list()
+  operatorList.value = await operators.list()
 })
 </script>

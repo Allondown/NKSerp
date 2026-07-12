@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api/v1/users", tags=["用户管理"])
 
 @router.get("", response_model=list[UserResponse])
 async def list_users(shift: str | None = None,
-                     current=Depends(require_role("admin", "warehouse", "workshop", "viewer"))):
+                     current=Depends(require_role("admin", "viewer"))):
     db = get_db()
     q = {}
     if shift:

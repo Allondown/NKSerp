@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/v1/issues", tags=["领用出库"])
 
 @router.post("")
 async def create_issue(data: IssueCreate,
-                       current=Depends(require_role("admin", "warehouse"))):
+                       current=Depends(require_role("admin"))):
     db = get_db()
     try:
         total_cost = await update_inventory_after_issue(data.material_spec,
@@ -42,7 +42,7 @@ async def list_issues(material_spec: str | None = None,
                       start_date: str | None = None,
                       end_date: str | None = None,
                       page: int = 1, page_size: int = 50,
-                      current=Depends(require_role("admin", "warehouse", "workshop", "viewer"))):
+                      current=Depends(require_role("admin", "viewer"))):
     db = get_db()
     q = {}
     if material_spec:

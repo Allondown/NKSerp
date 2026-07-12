@@ -38,4 +38,7 @@ async def _ensure_indexes():
         db.issue_records.create_index("issue_date"),
         db.daily_production.create_index([("production_date", 1), ("machine", 1)]),
         db.post_process.create_index("received_date"),
+        db.operators.create_index("name", unique=True),
+        db.tool_purchases.create_index("order_date"),
+        db.warehouse_entry.create_index("entry_date"),
     )

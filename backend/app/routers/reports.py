@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/v1/reports", tags=["统计报表"])
 
 @router.get("/cost")
 async def report_cost(year: int, month: int,
-                      current=Depends(require_role("admin", "workshop", "warehouse", "viewer"))):
+                      current=Depends(require_role("admin", "viewer"))):
     """月度成本报表：按材料规格统计期初/采购/领用/期末。"""
     db = get_db()
     start_date = datetime(year, month, 1)
@@ -122,7 +122,7 @@ async def report_cost(year: int, month: int,
 
 @router.get("/product-achieve")
 async def report_product_achieve(year: int, month: int,
-                                 current=Depends(require_role("admin", "workshop", "warehouse", "viewer"))):
+                                 current=Depends(require_role("admin", "viewer"))):
     """产品质量达成率报表：按产品+机器+班组。"""
     db = get_db()
     start_date = datetime(year, month, 1)
@@ -165,7 +165,7 @@ async def report_product_achieve(year: int, month: int,
 
 @router.get("/team-achieve")
 async def report_team_achieve(year: int, month: int,
-                              current=Depends(require_role("admin", "workshop", "warehouse", "viewer"))):
+                              current=Depends(require_role("admin", "viewer"))):
     """班组达成率汇总。"""
     db = get_db()
     start_date = datetime(year, month, 1)
@@ -203,7 +203,7 @@ async def report_team_achieve(year: int, month: int,
 
 @router.get("/employee")
 async def report_employee(year: int, month: int,
-                          current=Depends(require_role("admin", "workshop", "warehouse", "viewer"))):
+                          current=Depends(require_role("admin", "viewer"))):
     """员工绩效报表。"""
     db = get_db()
     start_date = datetime(year, month, 1)
@@ -246,7 +246,7 @@ async def report_employee(year: int, month: int,
 @router.get("/progress")
 async def report_progress(year: int, month: int,
                           product_code: str | None = None,
-                          current=Depends(require_role("admin", "workshop", "warehouse", "viewer"))):
+                          current=Depends(require_role("admin", "viewer"))):
     """后工序完成进度报表：按产品+班组汇总送出数量。"""
     db = get_db()
     start_date = datetime(year, month, 1)
@@ -298,10 +298,76 @@ async def report_progress(year: int, month: int,
     return result
 
 
+@router.get("/post-process-summary")
+async def report_post_process_summary(year: int,
+                                       current=Depends(require_role("admin", "viewer"))):
+    """后工序统计报表：机加送入月份未完成数量 + 后工序送出月份送出数量。"""
+    db = get_db()
+
+    # ---- 未完成统计：按送入月份汇总 ----
+    uncompleted_pipeline = [
+        {"$addFields": {
+            "total_send_qty": {
+                "$reduce": {
+                    "input": {"$ifNull": ["$sends", []]},
+                    "initialValue": 0,
+                    "in": {"$add": ["$$value", {"$ifNull": ["$$this.send_qty", 0]}]}
+                }
+            }
+        }},
+        {"$group": {
+            "_id": {
+                "year": {"$year": "$received_date"},
+                "month": {"$month": "$received_date"},
+            },
+            "total_received": {"$sum": "$received_qty"},
+            "total_sent": {"$sum": "$total_send_qty"},
+        }},
+        {"$sort": {"_id.year": 1, "_id.month": 1}}
+    ]
+    uncompleted_rows = await db.post_process.aggregate(uncompleted_pipeline).to_list(length=1000)
+    uncompleted = []
+    for r in uncompleted_rows:
+        g = r["_id"]
+        received = r["total_received"] or 0
+        sent = r["total_sent"] or 0
+        uncompleted.append({
+            "year": g["year"],
+            "month": g["month"],
+            "total_received": received,
+            "total_sent": sent,
+            "uncompleted": max(received - sent, 0),
+        })
+
+    # ---- 送出统计：按送出月份汇总 ----
+    send_pipeline = [
+        {"$unwind": {"path": "$sends", "preserveNullAndEmptyArrays": False}},
+        {"$group": {
+            "_id": {
+                "year": {"$year": "$sends.send_date"},
+                "month": {"$month": "$sends.send_date"},
+            },
+            "total_send_qty": {"$sum": "$sends.send_qty"},
+        }},
+        {"$sort": {"_id.year": 1, "_id.month": 1}}
+    ]
+    send_rows = await db.post_process.aggregate(send_pipeline).to_list(length=1000)
+    send_summary = []
+    for r in send_rows:
+        g = r["_id"]
+        send_summary.append({
+            "year": g["year"],
+            "month": g["month"],
+            "total_send_qty": r["total_send_qty"] or 0,
+        })
+
+    return {"uncompleted": uncompleted, "send_summary": send_summary}
+
+
 @router.get("/export/excel")
 async def export_excel(report_type: str, year: int, month: int,
                        product_code: str | None = None,
-                       current=Depends(require_role("admin", "workshop", "warehouse", "viewer"))):
+                       current=Depends(require_role("admin", "viewer"))):
     """导出报表为 Excel。"""
     from io import BytesIO
     import openpyxl
@@ -356,6 +422,26 @@ async def export_excel(report_type: str, year: int, month: int,
         for d in data:
             ws.append([d["product_code"], d["product_name"],
                        d["a_total"], d["b_total"], d["ab_total"], d["uncompleted"]])
+    elif report_type == "post-process-summary":
+        data = await report_post_process_summary(year)
+        headers = ["机加送入月份", "未完成数量"]
+        ws.append(headers)
+        total_uncompleted = 0
+        for d in data["uncompleted"]:
+            ws.append([f"{d['year']}-{d['month']:02d}", d["uncompleted"]])
+            total_uncompleted += d["uncompleted"]
+        ws.append(["合计", total_uncompleted])
+        ws.append([])
+        ws2 = wb.create_sheet("后工序送出统计")
+        headers2 = ["后工序送出月份", "送出数量"]
+        ws2.append(headers2)
+        total_send = 0
+        for d in data["send_summary"]:
+            ws2.append([f"{d['year']}-{d['month']:02d}", d["total_send_qty"]])
+            total_send += d["total_send_qty"]
+        ws2.append(["合计", total_send])
+        for col in range(1, len(headers2) + 1):
+            ws2.column_dimensions[get_column_letter(col)].width = 16
 
     for col in range(1, len(headers) + 1):
         ws.column_dimensions[get_column_letter(col)].width = 16

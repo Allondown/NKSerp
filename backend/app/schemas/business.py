@@ -8,6 +8,14 @@ class SendEntry(BaseModel):
     send_qty: int = 0
 
 
+class WarehouseEntryCreate(BaseModel):
+    entry_date: date          # 入仓日期
+    product_code: str         # 产品编号
+    product_name: str         # 产品名称
+    entry_qty: int            # 入仓数量
+    material_code: str = ""   # 物料编码
+
+
 class PostProcessCreate(BaseModel):
     received_date: date
     product_code: str
@@ -96,6 +104,20 @@ class DailyCombinedCreate(BaseModel):
     b_good_qty: int = 0
     b_operator: str = ""
     b_loss_remark: str = ""
+
+
+class ToolPurchaseCreate(BaseModel):
+    name: str               # 品名
+    spec: str               # 规格
+    quantity: float         # 数量
+    unit_price: float       # 单价（不含税）
+    processed_product: str  # 加工产品
+    supplier: str           # 供应商
+    material_origin: str    # 原料产地
+    order_date: date        # 下单日期
+    quotation: str = ""     # 报价
+    arrival_date: date | None = None  # 到货日期
+    remark: str = ""
 
 
 class LossRemarkUpdate(BaseModel):
