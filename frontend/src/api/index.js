@@ -186,7 +186,7 @@ export const reports = {
   progress: (year, month, productCode) => api.get('/reports/progress', { params: { year, month, product_code: productCode || undefined } }).then(r => r.data),
   postProcessSummary: (year) => api.get('/reports/post-process-summary', { params: { year } }).then(r => r.data),
   toolPurchaseCost: (year, month) => api.get('/reports/tool-purchase-cost', { params: { year, month } }).then(r => r.data),
-  toolSupplierCost: (year, month) => api.get('/reports/tool-supplier-cost', { params: { year, month } }).then(r => r.data),
+  toolSupplierCost: (year) => api.get('/reports/tool-supplier-cost', { params: { year } }).then(r => r.data),
   export: (reportType, year, month, productCode) => api.get('/reports/export/excel', {
     params: { report_type: reportType, year, month, product_code: productCode || undefined },
     responseType: 'blob'
