@@ -161,6 +161,14 @@ export const warehouseEntry = {
   }),
 }
 
+// Suppliers
+export const suppliers = {
+  list: () => api.get('/suppliers').then(r => r.data),
+  create: (data) => api.post('/suppliers', data),
+  update: (id, data) => api.put(`/suppliers/${id}`, data),
+  delete: (id) => api.delete(`/suppliers/${id}`),
+}
+
 // Operators
 export const operators = {
   list: () => api.get('/operators').then(r => r.data),

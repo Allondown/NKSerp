@@ -43,6 +43,14 @@ class OperatorResponse(OperatorCreate):
     pass
 
 
+class SupplierCreate(BaseModel):
+    name: str
+
+
+class SupplierResponse(SupplierCreate):
+    pass
+
+
 class ProductCreate(BaseModel):
     product_code: str
     product_name: str

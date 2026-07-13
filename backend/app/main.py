@@ -7,8 +7,8 @@ from app.config import CORS_ORIGINS
 from app.database import close_db, connect_db
 from app.routers import (auth, inventory, issues, machines, materials,
                          operators, post_process, products, production,
-                         purchases, reports, tool_purchase, users,
-                         warehouse_entry)
+                         purchases, reports, suppliers, tool_purchase,
+                         users, warehouse_entry)
 
 
 @asynccontextmanager
@@ -45,6 +45,7 @@ app.include_router(production.router)
 app.include_router(post_process.router)
 app.include_router(reports.router)
 app.include_router(operators.router)
+app.include_router(suppliers.router)
 app.include_router(tool_purchase.router)
 app.include_router(warehouse_entry.router)
 

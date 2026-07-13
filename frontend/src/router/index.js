@@ -26,6 +26,7 @@ const routes = [
       { path: 'settings/machines', name: 'Machines', component: () => import('../views/settings/Machines.vue'), meta: { title: '机器管理' } },
       { path: 'settings/users', name: 'Users', component: () => import('../views/settings/Users.vue'), meta: { title: '系统账户管理' } },
       { path: 'settings/operators', name: 'Operators', component: () => import('../views/settings/Operators.vue'), meta: { title: '班组人员管理' } },
+      { path: 'settings/suppliers', name: 'Suppliers', component: () => import('../views/settings/Suppliers.vue'), meta: { title: '刀具采购供应商管理' } },
       { path: 'settings/products', name: 'Products', component: () => import('../views/settings/Products.vue'), meta: { title: '产品主数据' } },
     ]
   },

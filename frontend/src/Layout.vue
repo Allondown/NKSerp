@@ -46,6 +46,7 @@
         <v-list-item prepend-icon="mdi-engine" title="机器管理" @click="go('/settings/machines')" color="primary" :active="isActive('/settings/machines')" />
         <v-list-item prepend-icon="mdi-package" title="产品主数据" @click="go('/settings/products')" color="primary" :active="isActive('/settings/products')" />
         <v-list-item prepend-icon="mdi-account-tie" title="班组人员管理" @click="go('/settings/operators')" color="primary" :active="isActive('/settings/operators')" />
+        <v-list-item prepend-icon="mdi-store" title="刀具采购供应商管理" @click="go('/settings/suppliers')" color="primary" :active="isActive('/settings/suppliers')" />
         <v-list-item prepend-icon="mdi-account-group" title="系统账户管理" @click="go('/settings/users')" color="primary" :active="isActive('/settings/users')" />
       </v-list>
       <template v-slot:append>

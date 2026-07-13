@@ -81,10 +81,10 @@
               <v-text-field v-model="form.processed_product" label="加工产品" density="compact" />
             </v-col>
             <v-col cols="6">
-              <v-text-field v-model="form.supplier" label="供应商" density="compact" />
+              <v-select v-model="form.supplier" :items="supplierList" label="供应商" density="compact" />
             </v-col>
             <v-col cols="6">
-              <v-text-field v-model="form.material_origin" label="原料产地" density="compact" />
+              <v-select v-model="form.material_origin" :items="originOptions" label="原料产地" density="compact" />
             </v-col>
             <v-col cols="6">
               <v-text-field v-model="form.quotation" label="报价" density="compact" />
@@ -118,7 +118,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import { toolPurchases } from '../../api'
+import { toolPurchases, suppliers } from '../../api'
 
 const initForm = () => ({
   name: '', spec: '', quantity: null, unit_price: null,
@@ -144,6 +144,8 @@ const statusOptions = [
   { title: '已到货', value: 'arrived' },
   { title: '未到货', value: 'pending' },
 ]
+const supplierList = ref([])
+const originOptions = ['国产', '进口']
 
 const autoTotal = computed(() =>
   (parseFloat(form.value.quantity || 0) * parseFloat(form.value.unit_price || 0)).toFixed(2)
@@ -250,5 +252,8 @@ async function loadRecords() {
   records.value = res.items || []
 }
 
-onMounted(loadRecords)
+onMounted(async () => {
+  supplierList.value = (await suppliers.list()).map(s => s.name)
+  await loadRecords()
+})
 </script>
