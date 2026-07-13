@@ -11,23 +11,21 @@
 
       <v-table density="compact">
         <thead>
-          <tr><th>供应商</th><th>月份</th><th>采购笔数</th><th>采购金额</th></tr>
+          <tr><th>供应商</th><th>采购笔数</th><th>采购金额</th></tr>
         </thead>
         <tbody>
-          <tr v-for="(r, i) in data.items" :key="i">
+          <tr v-for="r in data.items" :key="r.supplier">
             <td>{{ r.supplier }}</td>
-            <td>{{ r.month }}月</td>
             <td>{{ r.count }}</td>
             <td>{{ r.total_cost }}</td>
           </tr>
           <tr v-if="data.items && data.items.length">
             <td><strong>合计</strong></td>
             <td />
-            <td />
             <td><strong>{{ data.grand_total }}</strong></td>
           </tr>
           <tr v-if="!data.items || !data.items.length">
-            <td colspan="4" class="text-center">暂无数据</td>
+            <td colspan="3" class="text-center">暂无数据</td>
           </tr>
         </tbody>
       </v-table>

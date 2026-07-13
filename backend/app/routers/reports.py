@@ -422,26 +422,21 @@ async def report_tool_supplier_cost(year: int,
     pipeline = [
         {"$match": {"arrival_date": {"$gte": start, "$lte": end}}},
         {"$group": {
-            "_id": {
-                "supplier": "$supplier",
-                "month": {"$month": "$arrival_date"},
-            },
+            "_id": "$supplier",
             "total_cost": {"$sum": "$total_amount"},
             "count": {"$sum": 1},
         }},
-        {"$sort": {"_id.supplier": 1, "_id.month": 1}},
+        {"$sort": {"total_cost": -1}},
     ]
-    rows = await db.tool_purchases.aggregate(pipeline).to_list(length=500)
+    rows = await db.tool_purchases.aggregate(pipeline).to_list(length=200)
 
     items = []
     grand_total = 0.0
     for r in rows:
-        g = r["_id"]
         cost = round(r["total_cost"] or 0, 2)
         grand_total += cost
         items.append({
-            "supplier": g["supplier"] or "",
-            "month": g["month"],
+            "supplier": r["_id"] or "",
             "total_cost": cost,
             "count": r["count"],
         })
@@ -541,12 +536,12 @@ async def export_excel(report_type: str, year: int, month: int,
         ws.append(["合计", "", "", "", data["total_cost"]])
     elif report_type == "tool-supplier-cost":
         data = await report_tool_supplier_cost(year)
-        headers = ["供应商", "月份", "采购笔数", "采购金额"]
+        headers = ["供应商", "采购笔数", "采购金额"]
         ws.append(headers)
         for d in data["items"]:
-            ws.append([d["supplier"], f"{d['month']}月", d["count"], d["total_cost"]])
+            ws.append([d["supplier"], d["count"], d["total_cost"]])
         ws.append([])
-        ws.append(["合计", "", "", data["grand_total"]])
+        ws.append(["合计", "", data["grand_total"]])
 
     for col in range(1, len(headers) + 1):
         ws.column_dimensions[get_column_letter(col)].width = 16
