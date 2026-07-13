@@ -52,6 +52,7 @@ export const users = {
   create: (data) => api.post('/users', data),
   update: (username, data) => api.put(`/users/${username}`, data),
   delete: (username) => api.delete(`/users/${username}`),
+  changePassword: (username, password) => api.put(`/users/${username}/password`, null, { params: { password } }),
 }
 
 // Products
@@ -141,6 +142,7 @@ export const toolPurchases = {
   list: (params) => api.get('/tool-purchases', { params }).then(r => r.data),
   update: (id, data) => api.put(`/tool-purchases/${id}`, data),
   delete: (id) => api.delete(`/tool-purchases/${id}`),
+  lastByName: (name) => api.get('/tool-purchases/last', { params: { name } }).then(r => r.data),
 }
 
 // Warehouse Entry
@@ -175,6 +177,8 @@ export const reports = {
   employee: (year, month) => api.get('/reports/employee', { params: { year, month } }).then(r => r.data),
   progress: (year, month, productCode) => api.get('/reports/progress', { params: { year, month, product_code: productCode || undefined } }).then(r => r.data),
   postProcessSummary: (year) => api.get('/reports/post-process-summary', { params: { year } }).then(r => r.data),
+  toolPurchaseCost: (year, month) => api.get('/reports/tool-purchase-cost', { params: { year, month } }).then(r => r.data),
+  toolSupplierCost: (year, month) => api.get('/reports/tool-supplier-cost', { params: { year, month } }).then(r => r.data),
   export: (reportType, year, month, productCode) => api.get('/reports/export/excel', {
     params: { report_type: reportType, year, month, product_code: productCode || undefined },
     responseType: 'blob'

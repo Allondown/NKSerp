@@ -63,7 +63,7 @@
               <v-text-field v-model="form.order_date" label="下单日期" type="date" density="compact" />
             </v-col>
             <v-col cols="6">
-              <v-text-field v-model="form.name" label="品名" density="compact" />
+              <v-text-field v-model="form.name" label="品名" density="compact" @blur="onNameBlur" />
             </v-col>
             <v-col cols="6">
               <v-text-field v-model="form.spec" label="规格" density="compact" />
@@ -164,6 +164,19 @@ function toLocalDate(d) {
 function formatDate(d) {
   if (!d) return '-'
   return new Date(d).toLocaleDateString('zh-CN')
+}
+
+async function onNameBlur() {
+  if (!form.value.name) return
+  try {
+    const last = await toolPurchases.lastByName(form.value.name)
+    if (last) {
+      if (!form.value.spec && last.spec) form.value.spec = last.spec
+      if (!form.value.supplier && last.supplier) form.value.supplier = last.supplier
+      if (!form.value.material_origin && last.material_origin) form.value.material_origin = last.material_origin
+      if (!form.value.quotation && last.quotation) form.value.quotation = last.quotation
+    }
+  } catch (_) { /* ignore */ }
 }
 
 function openAdd() {

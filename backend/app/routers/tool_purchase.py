@@ -73,6 +73,25 @@ async def update_tool_purchase(record_id: str, data: ToolPurchaseCreate,
     return {"message": "ok"}
 
 
+@router.get("/last")
+async def get_last_by_name(name: str,
+                           current=Depends(require_role("admin", "viewer"))):
+    """根据品名查询最近一次记录，用于自动带出供应商和原料产地。"""
+    db = get_db()
+    record = await db.tool_purchases.find_one(
+        {"name": name},
+        sort=[("order_date", -1)]
+    )
+    if record:
+        return {
+            "spec": record.get("spec", ""),
+            "supplier": record.get("supplier", ""),
+            "material_origin": record.get("material_origin", ""),
+            "quotation": record.get("quotation", ""),
+        }
+    return {"supplier": "", "material_origin": ""}
+
+
 @router.delete("/{record_id}")
 async def delete_tool_purchase(record_id: str,
                                current=Depends(require_role("admin"))):

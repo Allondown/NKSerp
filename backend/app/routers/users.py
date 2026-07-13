@@ -61,3 +61,17 @@ async def delete_user(username: str,
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="未找到该用户")
     return {"message": "ok"}
+
+
+@router.put("/{username}/password")
+async def change_password(username: str, password: str,
+                          current=Depends(require_role("admin"))):
+    """管理账户修改指定用户的登录密码。"""
+    db = get_db()
+    result = await db.users.update_one(
+        {"username": username},
+        {"$set": {"password_hash": hash_password(password)}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="未找到该用户")
+    return {"message": "ok"}

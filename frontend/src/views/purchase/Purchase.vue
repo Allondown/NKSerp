@@ -1,5 +1,5 @@
 <template>
-  <v-card title="采购记录">
+  <v-card title="原材料采购入库">
     <v-card-text>
       <v-row>
         <v-col cols="2">

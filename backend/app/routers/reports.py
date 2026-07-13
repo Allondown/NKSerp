@@ -306,6 +306,12 @@ async def report_post_process_summary(year: int,
 
     # ---- 未完成统计：按送入月份汇总 ----
     uncompleted_pipeline = [
+        {"$match": {
+            "received_date": {
+                "$gte": datetime(year, 1, 1),
+                "$lte": datetime(year, 12, 31, 23, 59, 59),
+            }
+        }},
         {"$addFields": {
             "total_send_qty": {
                 "$reduce": {
@@ -342,6 +348,12 @@ async def report_post_process_summary(year: int,
     # ---- 送出统计：按送出月份汇总 ----
     send_pipeline = [
         {"$unwind": {"path": "$sends", "preserveNullAndEmptyArrays": False}},
+        {"$match": {
+            "sends.send_date": {
+                "$gte": datetime(year, 1, 1),
+                "$lte": datetime(year, 12, 31, 23, 59, 59),
+            }
+        }},
         {"$group": {
             "_id": {
                 "year": {"$year": "$sends.send_date"},
@@ -362,6 +374,75 @@ async def report_post_process_summary(year: int,
         })
 
     return {"uncompleted": uncompleted, "send_summary": send_summary}
+
+
+@router.get("/tool-purchase-cost")
+async def report_tool_purchase_cost(year: int, month: int,
+                                    current=Depends(require_role("admin", "viewer"))):
+    """刀具采购成本报表：按到货月份统计刀具采购成本。"""
+    from calendar import monthrange
+    db = get_db()
+    last_day = monthrange(year, month)[1]
+    start = datetime(year, month, 1)
+    end = datetime(year, month, last_day, 23, 59, 59)
+
+    records = await db.tool_purchases.find(
+        {"arrival_date": {"$gte": start, "$lte": end}},
+        sort=[("order_date", -1)]
+    ).to_list(length=1000)
+
+    items = []
+    total_cost = 0.0
+    for r in records:
+        amount = r.get("total_amount", 0) or 0
+        total_cost += amount
+        items.append({
+            "id": str(r.pop("_id")),
+            "name": r.get("name", ""),
+            "spec": r.get("spec", ""),
+            "quantity": r.get("quantity", 0),
+            "unit_price": r.get("unit_price", 0),
+            "total_amount": amount,
+            "processed_product": r.get("processed_product", ""),
+            "supplier": r.get("supplier", ""),
+            "order_date": r.get("order_date"),
+            "arrival_date": r.get("arrival_date"),
+        })
+    return {"items": items, "total_cost": round(total_cost, 2)}
+
+
+@router.get("/tool-supplier-cost")
+async def report_tool_supplier_cost(year: int, month: int,
+                                    current=Depends(require_role("admin", "viewer"))):
+    """刀具采购供应商成本报表：按供应商汇总月度采购成本。"""
+    from calendar import monthrange
+    db = get_db()
+    last_day = monthrange(year, month)[1]
+    start = datetime(year, month, 1)
+    end = datetime(year, month, last_day, 23, 59, 59)
+
+    pipeline = [
+        {"$match": {"arrival_date": {"$gte": start, "$lte": end}}},
+        {"$group": {
+            "_id": "$supplier",
+            "total_cost": {"$sum": "$total_amount"},
+            "count": {"$sum": 1},
+        }},
+        {"$sort": {"total_cost": -1}},
+    ]
+    rows = await db.tool_purchases.aggregate(pipeline).to_list(length=200)
+
+    items = []
+    grand_total = 0.0
+    for r in rows:
+        cost = round(r["total_cost"] or 0, 2)
+        grand_total += cost
+        items.append({
+            "supplier": r["_id"] or "",
+            "total_cost": cost,
+            "count": r["count"],
+        })
+    return {"items": items, "grand_total": round(grand_total, 2)}
 
 
 @router.get("/export/excel")
@@ -442,6 +523,27 @@ async def export_excel(report_type: str, year: int, month: int,
         ws2.append(["合计", total_send])
         for col in range(1, len(headers2) + 1):
             ws2.column_dimensions[get_column_letter(col)].width = 16
+    elif report_type == "tool-purchase-cost":
+        data = await report_tool_purchase_cost(year, month)
+        headers = ["品名", "规格", "数量", "单价", "总金额", "加工产品", "供应商", "下单日期", "到货日期"]
+        ws.append(headers)
+        for d in data["items"]:
+            ws.append([
+                d["name"], d["spec"], d["quantity"], d["unit_price"],
+                d["total_amount"], d["processed_product"], d["supplier"],
+                d["order_date"].strftime("%Y-%m-%d") if d.get("order_date") else "",
+                d["arrival_date"].strftime("%Y-%m-%d") if d.get("arrival_date") else "",
+            ])
+        ws.append([])
+        ws.append(["合计", "", "", "", data["total_cost"]])
+    elif report_type == "tool-supplier-cost":
+        data = await report_tool_supplier_cost(year, month)
+        headers = ["供应商", "采购笔数", "采购金额"]
+        ws.append(headers)
+        for d in data["items"]:
+            ws.append([d["supplier"], d["count"], d["total_cost"]])
+        ws.append([])
+        ws.append(["合计", "", data["grand_total"]])
 
     for col in range(1, len(headers) + 1):
         ws.column_dimensions[get_column_letter(col)].width = 16

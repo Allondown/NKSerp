@@ -1,5 +1,5 @@
 <template>
-  <v-card title="领用记录">
+  <v-card title="原材料领用出库">
     <v-card-text>
       <v-row>
         <v-col cols="2">
