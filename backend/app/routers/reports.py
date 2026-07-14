@@ -412,12 +412,18 @@ async def report_tool_purchase_cost(year: int, month: int,
 
 
 @router.get("/tool-supplier-cost")
-async def report_tool_supplier_cost(year: int,
+async def report_tool_supplier_cost(year: int, month: int | None = None,
                                     current=Depends(require_role("admin", "viewer"))):
     """刀具采购供应商成本报表：按供应商和月份汇总采购成本。"""
+    from calendar import monthrange
     db = get_db()
-    start = datetime(year, 1, 1)
-    end = datetime(year, 12, 31, 23, 59, 59)
+    if month:
+        last_day = monthrange(year, month)[1]
+        start = datetime(year, month, 1)
+        end = datetime(year, month, last_day, 23, 59, 59)
+    else:
+        start = datetime(year, 1, 1)
+        end = datetime(year, 12, 31, 23, 59, 59)
 
     pipeline = [
         {"$match": {"arrival_date": {"$gte": start, "$lte": end}}},
@@ -535,7 +541,7 @@ async def export_excel(report_type: str, year: int, month: int,
         ws.append([])
         ws.append(["合计", "", "", "", data["total_cost"]])
     elif report_type == "tool-supplier-cost":
-        data = await report_tool_supplier_cost(year)
+        data = await report_tool_supplier_cost(year, month)
         headers = ["供应商", "采购笔数", "采购金额"]
         ws.append(headers)
         for d in data["items"]:

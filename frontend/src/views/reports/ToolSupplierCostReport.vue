@@ -3,8 +3,9 @@
     <v-card-text>
       <v-row>
         <v-col cols="2"><v-select v-model="year" :items="years" label="年份" density="compact" /></v-col>
+        <v-col cols="2"><v-select v-model="month" :items="monthOptions" label="月份" density="compact" clearable /></v-col>
         <v-col cols="2"><v-btn color="primary" @click="loadData">查询</v-btn></v-col>
-        <v-col cols="8" class="text-right">
+        <v-col cols="6" class="text-right">
           <v-btn color="success" variant="outlined" @click="exportExcel">导出Excel</v-btn>
         </v-col>
       </v-row>
@@ -39,15 +40,17 @@ import { reports } from '../../api'
 
 const now = new Date()
 const year = ref(now.getFullYear())
+const month = ref(null)
 const years = [2025, 2026, 2027]
+const monthOptions = Array.from({ length: 12 }, (_, i) => ({ title: `${i + 1}月`, value: i + 1 }))
 const data = ref({ items: [], grand_total: 0 })
 
 async function loadData() {
-  data.value = await reports.toolSupplierCost(year.value)
+  data.value = await reports.toolSupplierCost(year.value, month.value)
 }
 
 function exportExcel() {
-  reports.export('tool-supplier-cost', year.value, 1)
+  reports.export('tool-supplier-cost', year.value, month.value || 1)
 }
 
 onMounted(loadData)
