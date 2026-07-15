@@ -420,11 +420,11 @@ async function loadPostProcess() {
   if (rows.length > 0) {
     const labels = rows.map(r => `${r.month}月`)
     chartPanels.value.push({
-      type: 'bar', title: '各月入仓 / 已完成 / 未完成结余',
+      type: 'bar', title: '机加各月入库（后工序） / 已完成 / 未完成结余',
       data: {
         labels,
         datasets: [
-          { label: '本月入仓', data: rows.map(r => r.total_received), backgroundColor: COLORS[0] },
+          { label: '入库（后工序）', data: rows.map(r => r.total_received), backgroundColor: COLORS[0] },
           { label: '已完成', data: rows.map(r => r.total_sent), backgroundColor: COLORS[1] },
           { label: '未完成结余', data: rows.map(r => r.uncompleted), backgroundColor: COLORS[3] },
         ],
@@ -447,10 +447,10 @@ async function loadPostProcess() {
     }
   }
 
-  tableHeaders.value = ['月份', '本月入仓', '已完成', '未完成结余']
+  tableHeaders.value = ['月份', '入库（后工序）', '已完成', '未完成结余']
   tableRows.value = rows.map(r => ({
     '月份': `${r.year}-${String(r.month).padStart(2, '0')}`,
-    '本月入仓': r.total_received,
+    '入库（后工序）': r.total_received,
     '已完成': r.total_sent,
     '未完成结余': r.uncompleted,
   }))

@@ -21,7 +21,7 @@
       <v-table density="compact">
         <thead>
           <tr>
-            <th>下单日期</th><th>品名</th><th>规格</th><th>数量</th><th>单价</th><th>总金额</th>
+            <th>下单日期</th><th>品名</th><th>规格</th><th>数量</th><th>单价（未税）</th><th>总金额（未税）</th>
             <th>加工产品</th><th>供应商</th><th>原料产地</th>
             <th>报价</th><th>到货日期</th><th>情况</th><th>备注</th><th>操作</th>
           </tr>
@@ -72,10 +72,10 @@
               <v-text-field v-model="form.quantity" label="数量" type="number" density="compact" />
             </v-col>
             <v-col cols="4">
-              <v-text-field v-model="form.unit_price" label="单价（不含税）" type="number" density="compact" />
+              <v-text-field v-model="form.unit_price" label="单价（未税）" type="number" density="compact" />
             </v-col>
             <v-col cols="4">
-              <v-text-field :model-value="autoTotal" label="总金额（不含税）" readonly variant="plain" density="compact" />
+              <v-text-field :model-value="autoTotal" label="总金额（未税）" readonly variant="plain" density="compact" />
             </v-col>
             <v-col cols="6">
               <v-text-field v-model="form.processed_product" label="加工产品" density="compact" />
