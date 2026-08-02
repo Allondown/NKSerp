@@ -3,8 +3,8 @@
     <v-card-text>
       <v-row>
         <v-col cols="3"><v-select v-model="year" :items="years" label="年份" density="compact" /></v-col>
-        <v-col cols="3"><v-btn color="primary" @click="loadData">查询</v-btn></v-col>
-        <v-col cols="6"><v-btn color="success" variant="outlined" @click="exportExcel">导出Excel</v-btn></v-col>
+        <v-col cols="3"><v-btn color="primary" size="small" @click="loadData">查询</v-btn></v-col>
+        <v-col cols="6"><v-btn color="success" size="small" variant="outlined" @click="exportExcel">导出</v-btn></v-col>
       </v-row>
 
       <v-row>
@@ -83,3 +83,30 @@ function exportExcel() {
 
 onMounted(loadData)
 </script>
+<style scoped>
+.v-table {
+  overflow: auto;
+  max-height: calc(100vh - 180px);
+}
+thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+thead th {
+  background-color: #E3F2FD !important;
+  color: #1565C0 !important;
+  font-weight: 700;
+  font-size: 1.08em;
+}
+th, td {
+  border-bottom: 1px solid #ddd !important;
+}
+tbody tr {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+tbody tr:hover {
+  background-color: #E3F2FD !important;
+}
+</style>

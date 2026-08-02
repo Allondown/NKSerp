@@ -12,8 +12,8 @@
         <v-col cols="3">
           <v-select v-model="reportType" :items="reportTypeOpts" label="报表类别" density="compact" />
         </v-col>
-        <v-col cols="2">
-          <v-btn color="primary" @click="loadAll">查询</v-btn>
+        <v-col cols="5" class="text-right">
+          <v-btn color="primary" size="small" @click="loadAll">查询</v-btn>
         </v-col>
       </v-row>
 
@@ -117,7 +117,7 @@ const barValuePlugin = {
         const isMoney = n >= 100 && chart.data.datasets[dsIdx]?.label?.includes('金额')
         let display
         if (isMoney) {
-          display = '¥' + n.toLocaleString('zh-CN')
+          display = '¥' + n.toLocaleString('zh-CN') + '元'
         } else if (n >= 1000) {
           display = n.toLocaleString('zh-CN')
         } else {
@@ -410,8 +410,8 @@ async function loadPostProcess() {
   }
 
   kpiCards.value = [
-    { title: '年度入仓总量', value: `${totalReceived} 件`, icon: 'mdi-archive-arrow-down', color: 'primary' },
-    { title: '年度送出总量', value: `${totalSent} 件`, icon: 'mdi-send', color: 'success' },
+    { title: '机加年度入库总量', value: `${totalReceived} 件`, icon: 'mdi-archive-arrow-down', color: 'primary' },
+    { title: '后工序年度送出总量', value: `${totalSent} 件`, icon: 'mdi-send', color: 'success' },
     { title: '未完成总数', value: `${totalUncompleted} 件`, icon: 'mdi-progress-clock', color: 'warning' },
     { title: '已统计月份', value: `${monthCount} 个月`, icon: 'mdi-calendar-month', color: 'info' },
   ]

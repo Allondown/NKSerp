@@ -2,21 +2,22 @@
   <v-card title="日报列表">
     <v-card-text>
       <v-row>
-        <v-col cols="3">
+        <v-col cols="2">
           <v-text-field v-model="filterStartDate" label="起始日期" type="date" density="compact" />
         </v-col>
-        <v-col cols="3">
+        <v-col cols="2">
           <v-text-field v-model="filterEndDate" label="结束日期" type="date" density="compact" />
         </v-col>
         <v-col cols="2">
           <v-select v-model="filterMachine" :items="machineList" label="机器" density="compact" clearable />
         </v-col>
-        <v-col cols="1">
+        <v-col cols="2">
           <v-btn variant="outlined" size="small" @click="loadSummary">查询</v-btn>
         </v-col>
-        <v-col cols="3" class="text-right">
-          <v-btn variant="outlined" @click="exportExcel" class="mr-2">导出Excel</v-btn>
-          <v-btn color="success" prepend-icon="mdi-plus" @click="openAdd">新增日报</v-btn>
+        <v-col cols="4" class="text-right">
+          <v-btn color="info" size="small" variant="outlined" prepend-icon="mdi-file-import" @click="importDialog = true" class="mr-1">导入</v-btn>
+          <v-btn size="small" variant="outlined" prepend-icon="mdi-file-export" @click="exportExcel" class="mr-1">导出</v-btn>
+          <v-btn color="success" size="small" prepend-icon="mdi-plus" @click="openAdd">新增</v-btn>
         </v-col>
       </v-row>
 
@@ -176,6 +177,33 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="importDialog" max-width="550">
+      <v-card title="批量导入生产日报">
+        <v-card-text>
+          <div class="text-caption mb-3">
+            请上传 Excel 文件（.xlsx），表头顺序：<br/>
+            日期 | 机器 | 产品编号 | 产品名称 |<br/>
+            A节拍 | A生产时间 | A实绩 | A良品 | A损失备注 | A操作工 |<br/>
+            B节拍 | B生产时间 | B实绩 | B良品 | B损失备注 | 计划产量 | B操作工
+          </div>
+          <v-file-input v-model="importFile" label="选择Excel文件" accept=".xlsx"
+            density="compact" prepend-icon="mdi-file-excel" />
+          <v-alert v-if="importResult" :type="importResult.errors?.length ? 'warning' : 'success'"
+            density="compact" class="mt-2">
+            {{ importResult.message }}
+            <div v-if="importResult.errors?.length" class="mt-1">
+              <div v-for="(e, i) in importResult.errors" :key="i" class="text-caption">{{ e }}</div>
+            </div>
+          </v-alert>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="importDialog = false; importFile = null; importResult = null">关闭</v-btn>
+          <v-btn color="info" :loading="importLoading" :disabled="!importFile" @click="doImport">开始导入</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
@@ -197,8 +225,9 @@ const machineList = ref([])
 const materialList = ref([])
 const operatorList = ref([])
 const summaryData = ref([])
-const filterStartDate = ref(toLocalDate(new Date()))
-const filterEndDate = ref(toLocalDate(new Date()))
+const now = new Date()
+const filterStartDate = ref(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`)
+const filterEndDate = ref(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()}`)
 const filterMachine = ref('')
 const loading = ref(false)
 const dialog = ref(false)
@@ -206,6 +235,10 @@ const editingKey = ref(null)
 const confirmDialog = ref(false)
 const confirmMessage = ref('')
 const pendingDelete = ref(null)
+const importDialog = ref(false)
+const importFile = ref(null)
+const importLoading = ref(false)
+const importResult = ref(null)
 
 const aOperatorList = computed(() =>
   operatorList.value.filter(o => o.shift === 'A班').map(o => o.name)
@@ -452,6 +485,23 @@ function getFilterParams() {
   return params
 }
 
+async function doImport() {
+  if (!importFile.value) return
+  importLoading.value = true
+  importResult.value = null
+  try {
+    importResult.value = await production.importExcel(importFile.value)
+    if (!importResult.value.errors?.length) {
+      importFile.value = null
+    }
+    await loadSummary()
+  } catch (e) {
+    importResult.value = { message: '导入失败：' + (e.response?.data?.detail || e.message), errors: [] }
+  } finally {
+    importLoading.value = false
+  }
+}
+
 function exportExcel() {
   production.exportExcel(getFilterParams())
 }
@@ -462,3 +512,30 @@ onMounted(async () => {
   operatorList.value = await operators.list()
 })
 </script>
+<style scoped>
+.v-table {
+  overflow: auto;
+  max-height: calc(100vh - 180px);
+}
+thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+thead th {
+  background-color: #E3F2FD !important;
+  color: #1565C0 !important;
+  font-weight: 700;
+  font-size: 1.08em;
+}
+th, td {
+  border-bottom: 1px solid #ddd !important;
+}
+tbody tr {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+tbody tr:hover {
+  background-color: #E3F2FD !important;
+}
+</style>

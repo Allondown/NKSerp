@@ -79,6 +79,13 @@ export const issues = {
   create: (data) => api.post('/issues', data).then(r => r.data),
   list: (params) => api.get('/issues', { params }).then(r => r.data),
   delete: (id) => api.delete(`/issues/${id}`),
+  importExcel: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post('/issues/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data)
+  },
 }
 
 // Inventory
@@ -102,6 +109,13 @@ export const production = {
   update: (id, data) => api.put(`/production/daily/${id}`, data),
   delete: (id) => api.delete(`/production/daily/${id}`),
   updateLossRemark: (data) => api.put('/production/daily/update-loss-remark', data).then(r => r.data),
+  importExcel: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post('/production/daily/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data)
+  },
   exportExcel: (params) => api.get('/production/daily/export', { params, responseType: 'blob' }).then(r => {
     const url = window.URL.createObjectURL(new Blob([r.data]))
     const link = document.createElement('a')
@@ -126,6 +140,7 @@ export const postProcess = {
   list: (params) => api.get('/post-process', { params }).then(r => r.data),
   update: (id, data) => api.put(`/post-process/${id}`, data),
   delete: (id) => api.delete(`/post-process/${id}`),
+  lastByCode: (code) => api.get('/post-process/last', { params: { product_code: code } }).then(r => r.data),
   exportExcel: (params) => api.get('/post-process/export', { params, responseType: 'blob' }).then(r => {
     const url = window.URL.createObjectURL(new Blob([r.data]))
     const link = document.createElement('a')

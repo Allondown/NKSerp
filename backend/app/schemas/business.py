@@ -49,6 +49,7 @@ class IssueCreate(BaseModel):
     issue_date: date
     machine: str
     product_code: str
+    product_name: str = ""
     material_spec: str
     issue_rods: float
     issue_weight_kg: float

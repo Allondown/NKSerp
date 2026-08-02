@@ -12,16 +12,22 @@
           <v-btn variant="outlined" size="small" @click="loadRecords">查询</v-btn>
         </v-col>
         <v-col cols="6" class="text-right">
-          <v-btn color="warning" prepend-icon="mdi-plus" @click="dialog = true">新增领用</v-btn>
+          <v-btn color="info" size="small" variant="outlined" prepend-icon="mdi-file-import" @click="importDialog = true" class="mr-2">导入</v-btn>
+          <v-btn color="warning" size="small" prepend-icon="mdi-plus" @click="dialog = true">新增</v-btn>
         </v-col>
       </v-row>
       <v-table density="compact">
         <thead>
-          <tr><th>日期</th><th>材料</th><th>重量</th><th>成本</th><th>领用人</th><th>操作</th></tr>
+          <tr><th>日期</th><th>工作机器</th><th>产品编号</th><th>产品名称</th><th>材料材质及规格</th><th>钢材重量</th><th>成本</th><th>领用人</th><th>操作</th></tr>
         </thead>
         <tbody>
-          <tr v-for="r in records" :key="r.id">
+          <tr v-for="r in records" :key="r.id"
+            :class="{ 'selected-row': selectedId === r.id }"
+            @click="selectedId = selectedId === r.id ? null : r.id">
             <td>{{ formatDate(r.issue_date) }}</td>
+            <td>{{ r.machine }}</td>
+            <td>{{ r.product_code }}</td>
+            <td>{{ r.product_name }}</td>
             <td>{{ r.material_spec }}</td>
             <td>{{ r.issue_weight_kg }}</td>
             <td>{{ r.total_cost }}</td>
@@ -32,7 +38,7 @@
               </v-btn>
             </td>
           </tr>
-          <tr v-if="!records.length"><td colspan="6" class="text-center">暂无记录</td></tr>
+          <tr v-if="!records.length"><td colspan="9" class="text-center">暂无记录</td></tr>
         </tbody>
       </v-table>
     </v-card-text>
@@ -43,6 +49,7 @@
           <v-text-field v-model="form.issue_date" label="出库日期" type="date" density="compact" />
           <v-select v-model="form.machine" :items="machineList" label="加工机器" density="compact" />
           <v-text-field v-model="form.product_code" label="产品编号" density="compact" />
+          <v-text-field v-model="form.product_name" label="产品名称" density="compact" />
           <v-select v-model="form.material_spec" :items="materialList" label="材料规格" density="compact"
             @update:model-value="updateAvgPrice" />
           <v-text-field :model-value="currentAvgPrice" label="当前加权均价（元/kg）" readonly variant="plain" density="compact" />
@@ -70,6 +77,31 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="importDialog" max-width="500">
+      <v-card title="批量导入领用出库">
+        <v-card-text>
+          <div class="text-caption mb-3">
+            请上传 Excel 文件（.xlsx），表头顺序：<br/>
+            日期 | 工作机器 | 产品编号 | 产品名称 | 材料材质及规格 | 钢材重量 | 领用人
+          </div>
+          <v-file-input v-model="importFile" label="选择Excel文件" accept=".xlsx"
+            density="compact" prepend-icon="mdi-file-excel" />
+          <v-alert v-if="importResult" :type="importResult.errors?.length ? 'warning' : 'success'"
+            density="compact" class="mt-2">
+            {{ importResult.message }}
+            <div v-if="importResult.errors?.length" class="mt-1">
+              <div v-for="(e, i) in importResult.errors" :key="i" class="text-caption">{{ e }}</div>
+            </div>
+          </v-alert>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="importDialog = false; importFile = null; importResult = null">关闭</v-btn>
+          <v-btn color="info" :loading="importLoading" :disabled="!importFile" @click="doImport">开始导入</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
@@ -81,7 +113,7 @@ const pendingDelete = ref(null)
 
 const initForm = () => ({
   issue_date: new Date().toISOString().slice(0, 10),
-  machine: '', product_code: '', material_spec: '',
+  machine: '', product_code: '', product_name: '', material_spec: '',
   issue_rods: 0, issue_weight_kg: 0, operator: '', remark: '',
 })
 
@@ -93,6 +125,11 @@ const records = ref([])
 const currentAvgPrice = ref(0)
 const loading = ref(false)
 const dialog = ref(false)
+const importDialog = ref(false)
+const importFile = ref(null)
+const importLoading = ref(false)
+const importResult = ref(null)
+const selectedId = ref(null)
 const now = new Date()
 const filterYear = ref(now.getFullYear())
 const filterMonth = ref(now.getMonth() + 1)
@@ -149,6 +186,23 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString('zh-CN')
 }
 
+async function doImport() {
+  if (!importFile.value) return
+  importLoading.value = true
+  importResult.value = null
+  try {
+    importResult.value = await issues.importExcel(importFile.value)
+    if (!importResult.value.errors?.length) {
+      importFile.value = null
+    }
+    await loadRecords()
+  } catch (e) {
+    importResult.value = { message: '导入失败：' + (e.response?.data?.detail || e.message), errors: [] }
+  } finally {
+    importLoading.value = false
+  }
+}
+
 async function loadRecords() {
   const year = filterYear.value
   const month = filterMonth.value
@@ -165,3 +219,34 @@ onMounted(async () => {
   await loadRecords()
 })
 </script>
+
+<style scoped>
+.v-table {
+  overflow: auto;
+  max-height: calc(100vh - 180px);
+}
+thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+thead th {
+  background-color: #E3F2FD !important;
+  color: #1565C0 !important;
+  font-weight: 700;
+  font-size: 1.08em;
+}
+th, td {
+  border-bottom: 1px solid #ddd !important;
+}
+tbody tr {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+tbody tr:hover {
+  background-color: #E3F2FD !important;
+}
+tbody tr.selected-row {
+  background-color: #BBDEFB !important;
+}
+</style>

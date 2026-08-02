@@ -163,6 +163,20 @@ async def export_records(start_date: str | None = None,
     )
 
 
+@router.get("/last")
+async def get_last(product_code: str,
+                   current=Depends(require_role("admin", "viewer"))):
+    """根据产品编号查询最近一次登记的产品名称。"""
+    db = get_db()
+    record = await db.post_process.find_one(
+        {"product_code": product_code},
+        sort=[("received_date", -1)]
+    )
+    if record:
+        return {"product_name": record.get("product_name", "")}
+    return {"product_name": ""}
+
+
 @router.delete("/{record_id}")
 async def delete_record(record_id: str,
                         current=Depends(require_role("admin"))):

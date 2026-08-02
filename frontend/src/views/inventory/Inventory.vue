@@ -62,3 +62,30 @@ onMounted(refresh)
 onActivated(() => { refresh(); startPoll() })
 onDeactivated(stopPoll)
 </script>
+<style scoped>
+.v-table {
+  overflow: auto;
+  max-height: calc(100vh - 180px);
+}
+thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+thead th {
+  background-color: #E3F2FD !important;
+  color: #1565C0 !important;
+  font-weight: 700;
+  font-size: 1.08em;
+}
+th, td {
+  border-bottom: 1px solid #ddd !important;
+}
+tbody tr {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+tbody tr:hover {
+  background-color: #E3F2FD !important;
+}
+</style>

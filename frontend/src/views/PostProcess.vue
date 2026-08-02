@@ -2,21 +2,21 @@
   <v-card title="后工序物料进出登记">
     <v-card-text>
       <v-row>
-        <v-col cols="3">
+        <v-col cols="2">
           <v-text-field v-model="filterStartDate" label="起始日期" type="date" density="compact" />
         </v-col>
-        <v-col cols="3">
+        <v-col cols="2">
           <v-text-field v-model="filterEndDate" label="结束日期" type="date" density="compact" />
         </v-col>
         <v-col cols="2">
           <v-text-field v-model="filterProductCode" label="产品编号" density="compact" clearable hide-details />
         </v-col>
-        <v-col cols="1">
+        <v-col cols="2">
           <v-btn color="primary" variant="outlined" size="small" @click="loadRecords">查询</v-btn>
         </v-col>
-        <v-col cols="2" class="text-right">
-          <v-btn color="success" variant="outlined" @click="exportExcel" class="mr-2">导出Excel</v-btn>
-          <v-btn color="primary" prepend-icon="mdi-plus" @click="openAdd">新增登记</v-btn>
+        <v-col cols="4" class="text-right">
+          <v-btn color="success" size="small" variant="outlined" prepend-icon="mdi-file-export" @click="exportExcel" class="mr-1">导出</v-btn>
+          <v-btn color="primary" size="small" prepend-icon="mdi-plus" @click="openAdd">新增</v-btn>
         </v-col>
       </v-row>
 
@@ -124,8 +124,9 @@ const operatorList = ref([])
 const loading = ref(false)
 const dialog = ref(false)
 const editingId = ref(null)
-const filterStartDate = ref(toLocalDate(new Date()))
-const filterEndDate = ref(toLocalDate(new Date()))
+const now = new Date()
+const filterStartDate = ref(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`)
+const filterEndDate = ref(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()}`)
 const filterProductCode = ref('')
 
 const filteredOperators = computed(() => {
@@ -162,6 +163,15 @@ function formatDate(d) {
 async function onProductCodeBlur() {
   if (!form.value.product_code) return
   try {
+    // 先从以往后工序登记记录中查找产品名称
+    const last = await postProcess.lastByCode(form.value.product_code)
+    if (last && last.product_name) {
+      form.value.product_name = last.product_name
+      return
+    }
+  } catch (_) { /* ignore */ }
+  try {
+    // 再从产品主数据查找
     const prod = await products.get(form.value.product_code)
     if (prod) {
       form.value.product_name = prod.product_name || ''
@@ -263,3 +273,30 @@ onMounted(async () => {
   operatorList.value = await operators.list()
 })
 </script>
+<style scoped>
+.v-table {
+  overflow: auto;
+  max-height: calc(100vh - 180px);
+}
+thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+thead th {
+  background-color: #E3F2FD !important;
+  color: #1565C0 !important;
+  font-weight: 700;
+  font-size: 1.08em;
+}
+th, td {
+  border-bottom: 1px solid #ddd !important;
+}
+tbody tr {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+tbody tr:hover {
+  background-color: #E3F2FD !important;
+}
+</style>

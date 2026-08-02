@@ -11,11 +11,9 @@
         <v-col cols="2">
           <v-select v-model="filterStatus" :items="statusOptions" label="到货情况" density="compact" clearable />
         </v-col>
-        <v-col cols="2">
-          <v-btn variant="outlined" size="small" @click="loadRecords">查询</v-btn>
-        </v-col>
         <v-col cols="6" class="text-right">
-          <v-btn color="primary" prepend-icon="mdi-plus" @click="openAdd">新增刀具采购</v-btn>
+          <v-btn variant="outlined" size="small" @click="loadRecords" class="mr-2">查询</v-btn>
+          <v-btn color="primary" size="small" prepend-icon="mdi-plus" @click="openAdd">新增刀具采购</v-btn>
         </v-col>
       </v-row>
       <v-table density="compact">
@@ -257,3 +255,30 @@ onMounted(async () => {
   await loadRecords()
 })
 </script>
+<style scoped>
+.v-table {
+  overflow: auto;
+  max-height: calc(100vh - 180px);
+}
+thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+thead th {
+  background-color: #E3F2FD !important;
+  color: #1565C0 !important;
+  font-weight: 700;
+  font-size: 1.08em;
+}
+th, td {
+  border-bottom: 1px solid #ddd !important;
+}
+tbody tr {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+tbody tr:hover {
+  background-color: #E3F2FD !important;
+}
+</style>

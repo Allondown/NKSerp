@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
 
 from app.database import get_db
@@ -150,6 +150,118 @@ async def update_daily_combined(
         result = await db.daily_production.insert_one(rec)
         ids.append(str(result.inserted_id))
     return {"message": "ok", "ids": ids}
+
+
+@router.post("/daily/import")
+async def import_daily(file: UploadFile = File(...),
+                       current=Depends(require_role("admin"))):
+    """从 Excel 批量导入生产日报。
+    表头：日期 | 机器 | 产品编号 | 产品名称 |
+          A节拍 | A生产时间 | A实绩 | A良品 | A损失备注 | A操作工 |
+          B节拍 | B生产时间 | B实绩 | B良品 | B损失备注 | 计划产量 | B操作工
+    """
+    import openpyxl
+    from io import BytesIO
+
+    db = get_db()
+    contents = await file.read()
+    wb = openpyxl.load_workbook(BytesIO(contents))
+    ws = wb.active
+
+    rows = list(ws.iter_rows(min_row=2, values_only=True))
+    if not rows:
+        raise HTTPException(status_code=400, detail="Excel 文件中没有数据行")
+
+    created = 0
+    errors = []
+    for i, row in enumerate(rows, start=2):
+        if not row or all(v is None for v in row):
+            continue
+        try:
+            # 解析各列
+            date_val        = row[0]
+            machine         = str(row[1] or "").strip()
+            product_code    = str(row[2] or "").strip()
+            product_name    = str(row[3] or "").strip()
+            a_cycle_sec     = float(row[4] or 0)
+            a_work_time_sec = float(row[5] or 0)
+            a_actual_qty    = int(row[6] or 0)
+            a_good_qty      = int(row[7] or 0)
+            a_loss_remark   = str(row[8] or "").strip()
+            a_operator      = str(row[9] or "").strip()
+            b_cycle_sec     = float(row[10] or 0)
+            b_work_time_sec = float(row[11] or 0)
+            b_actual_qty    = int(row[12] or 0)
+            b_good_qty      = int(row[13] or 0)
+            b_loss_remark   = str(row[14] or "").strip()
+            plan_qty        = int(row[15] or 0)
+            b_operator      = str(row[16] or "").strip()
+            material_spec   = ""
+
+            if not machine or not product_code:
+                errors.append(f"第{i}行：缺少机器或产品编号")
+                continue
+
+            # 解析日期
+            if isinstance(date_val, datetime):
+                issue_date = date_val
+            elif isinstance(date_val, str):
+                issue_date = datetime.strptime(date_val.strip(), "%Y-%m-%d")
+            else:
+                errors.append(f"第{i}行：日期格式错误")
+                continue
+
+            cycle_sec = a_cycle_sec or b_cycle_sec
+            total_actual = a_actual_qty + b_actual_qty
+            fallback_a_work = round((a_work_time_sec or 0) * (a_actual_qty / total_actual), 2) if total_actual > 0 else 0
+            fallback_b_work = round((b_work_time_sec or 0) * (b_actual_qty / total_actual), 2) if total_actual > 0 else 0
+            a_work = a_work_time_sec if a_work_time_sec > 0 else fallback_a_work
+            b_work = b_work_time_sec if b_work_time_sec > 0 else fallback_b_work
+            a_cycle = a_cycle_sec if a_cycle_sec > 0 else cycle_sec
+            b_cycle = b_cycle_sec if b_cycle_sec > 0 else cycle_sec
+
+            def make_record(shift, operator, work_sec, cycle, actual_qty, good_qty, loss_remark):
+                theo = work_sec / cycle if cycle > 0 else 0
+                bad = actual_qty - good_qty
+                return {
+                    "production_date": datetime.combine(issue_date, datetime.min.time()),
+                    "machine": machine,
+                    "product_name": product_name,
+                    "product_code": product_code,
+                    "material_spec": material_spec,
+                    "cycle_sec": cycle,
+                    "work_time_sec": work_sec,
+                    "theoretical_qty": round(theo, 4),
+                    "good_qty": good_qty,
+                    "bad_qty": max(bad, 0),
+                    "actual_qty": actual_qty,
+                    "qualified_rate": round(good_qty / actual_qty, 4) if actual_qty > 0 else 0,
+                    "loss_time_min": 0,
+                    "shift": shift,
+                    "operator": operator,
+                    "plan_qty": plan_qty,
+                    "remark": "",
+                    "loss_remark": loss_remark,
+                    "created_at": datetime.utcnow(),
+                }
+
+            records = []
+            if a_actual_qty > 0 or a_operator:
+                records.append(make_record("A班", a_operator, a_work, a_cycle, a_actual_qty, a_good_qty, a_loss_remark))
+            if b_actual_qty > 0 or b_operator:
+                records.append(make_record("B班", b_operator, b_work, b_cycle, b_actual_qty, b_good_qty, b_loss_remark))
+
+            if not records:
+                errors.append(f"第{i}行：A/B班均无数据")
+                continue
+
+            for rec in records:
+                await db.daily_production.insert_one(rec)
+            created += 1
+        except Exception as e:
+            errors.append(f"第{i}行：{str(e)}")
+
+    return {"message": f"成功导入 {created} 条记录", "created": created, "errors": errors}
 
 
 @router.get("/daily/export")
