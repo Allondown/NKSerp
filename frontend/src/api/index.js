@@ -1,9 +1,19 @@
 import axios from 'axios'
+import { useToastStore } from '../store/toast'
 
 const api = axios.create({
   baseURL: '/api/v1',
   timeout: 15000,
 })
+
+// 懒加载 toast store 实例，避免在模块加载阶段（Pinia 尚未安装时）调用
+let _toastStore = null
+function toast() {
+  if (!_toastStore) {
+    _toastStore = useToastStore()
+  }
+  return _toastStore
+}
 
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('token')
@@ -14,12 +24,38 @@ api.interceptors.request.use(config => {
 })
 
 api.interceptors.response.use(
-  res => res,
+  res => {
+    // 对写操作（POST/PUT/DELETE）自动弹出成功提示
+    const method = (res.config.method || '').toLowerCase()
+    if (['post', 'put', 'delete'].includes(method)) {
+      const msg = res.data?.message || res.data?.msg
+      if (msg && msg !== 'ok') {
+        toast().success(msg)
+      } else if (res.data?.created !== undefined) {
+        toast().success(`成功导入 ${res.data.created} 条记录`)
+      } else if (method === 'delete') {
+        toast().success('删除成功')
+      } else {
+        toast().success('操作成功')
+      }
+    }
+    return res
+  },
   err => {
     if (err.response?.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.location.href = '/login'
+    }
+    const detail = err.response?.data?.detail
+    if (detail) {
+      toast().error(typeof detail === 'string' ? detail : JSON.stringify(detail))
+    } else if (err.code === 'ECONNABORTED') {
+      toast().error('请求超时，请稍后重试')
+    } else if (!err.response) {
+      toast().error('网络连接失败')
+    } else {
+      toast().error(`请求失败（${err.response.status}）`)
     }
     return Promise.reject(err)
   }

@@ -79,7 +79,7 @@ async def update_record(record_id: str, data: PostProcessCreate,
         {"_id": ObjectId(record_id)},
         {"$set": update_data}
     )
-    if result.modified_count == 0:
+    if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="未找到该记录")
     return {"message": "ok"}
 

@@ -34,7 +34,7 @@ async def update_material(material_spec: str, data: MaterialCreate,
         {"material_spec": material_spec},
         {"$set": data.model_dump()}
     )
-    if result.modified_count == 0:
+    if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="未找到该材料")
     return {"message": "ok"}
 

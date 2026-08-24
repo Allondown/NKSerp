@@ -48,7 +48,7 @@ async def update_user(username: str, data: UserCreate,
         {"username": username},
         {"$set": update_data}
     )
-    if result.modified_count == 0:
+    if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="未找到该用户")
     return {"message": "ok"}
 

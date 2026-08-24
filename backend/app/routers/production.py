@@ -642,7 +642,7 @@ async def update_daily(record_id: str, data: DailyProductionCreate,
             "qualified_rate": round(qualified_rate, 4),
         }}
     )
-    if result.modified_count == 0:
+    if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="未找到该记录")
     return {"message": "ok"}
 
